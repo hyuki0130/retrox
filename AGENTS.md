@@ -289,13 +289,20 @@ describe('CoinService', () => {
 ## Task Management (Linear + Git Worktrees)
 
 - Linear 팀/프로젝트: 팀 `Hyuki0130`, 프로젝트 `retrox`에서 모든 작업을 관리합니다.
-- 이슈 ID 규칙: 모바일은 `app-123`, 서버는 `server-123` 형태로 발급하고, 브랜치명도 이슈 ID와 동일하게 사용합니다.
+- 이슈 ID 규칙: 모바일은 `app-123`, 서버는 `server-123` 형태로 발급합니다.
+- 이슈 제목은 `[app-123] ...`, `[server-123] ...` 형식으로 사용합니다.
+- 브랜치명은 이슈 ID와 동일하게 사용합니다.
 - Worktree 병렬 작업 가이드 (루트에 `worktree/` 디렉토리 사용):
   - 최신 기준 갱신: `git fetch origin`
   - 워크트리 추가: `git worktree add worktree/app-123 -b app-123 origin/main` (이슈 ID에 맞춰 경로/브랜치명 교체)
   - 워크트리 제거: `git worktree remove worktree/app-123` (병합/정리 후)
   - 브랜치 청소: `git branch -D app-123` (워크트리 제거 후 필요 시)
   - 기본 규칙: 한 이슈 = 한 worktree/브랜치, 이름은 이슈 ID와 동일하게 유지합니다.
+- 업무 진행 원칙:
+  - 병렬 가능한 작업은 병렬로 진행
+  - 선행 작업이 필요한 경우 해당 작업 완료 후 진행
+  - Linear 이슈에서 작업을 가져와 상태/내용을 지속 업데이트
+  - 작업 완료 후 Git 커밋 → 푸시 → PR/머지 순서로 진행 (필요 시 리뷰 후 병합)
 
 ## Infrastructure Notes
 
