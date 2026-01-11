@@ -304,6 +304,99 @@ describe('CoinService', () => {
   - Linear 이슈에서 작업을 가져와 상태/내용을 지속 업데이트
   - 작업 완료 후 Git 커밋 → 푸시 → PR/머지 순서로 진행 (필요 시 리뷰 후 병합)
 
+## Issue Tracking Guidelines (MANDATORY)
+
+### 이슈 업데이트 원칙
+
+모든 작업은 Linear 이슈에 **상세하게 기록**해야 합니다. 진행 상황뿐만 아니라 **실제 구현 내용**도 반드시 포함합니다.
+
+### 이슈 설명(Description) 업데이트 형식
+
+작업 완료 시 이슈 Description에 다음 섹션을 추가합니다:
+
+```markdown
+---
+
+## Completed Work
+
+### Files Created/Modified
+- `path/to/file.ts`: 설명
+- `path/to/another.ts`: 설명
+
+### Implementation Details
+- 주요 구현 내용 1
+- 주요 구현 내용 2
+
+### Technical Decisions
+- 선택한 기술/패턴과 그 이유
+
+### API Endpoints (서버 작업 시)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/coins/add | 코인 지급 |
+
+### Dependencies Added (패키지 추가 시)
+- `package-name`: 용도 설명
+
+### Commit
+- Branch: `branch-name`
+- Commit: `commit-hash` - commit message
+```
+
+### 댓글(Comment) 활용
+
+- **진행 중 이슈**: 막힌 부분, 결정 필요 사항, 질문 등을 댓글로 기록
+- **코드 리뷰 피드백**: PR 관련 논의는 댓글로 추적
+- **버그/이슈 발견**: 작업 중 발견한 문제점 기록
+
+### 상태 업데이트 타이밍
+
+| 시점 | 액션 |
+|------|------|
+| 작업 시작 | 상태를 `In Progress`로 변경 |
+| 구현 완료 | Description에 Completed Work 섹션 추가 |
+| 커밋/푸시 완료 | 커밋 정보 추가 |
+| PR 생성 | PR 링크 댓글로 추가 |
+| 머지 완료 | 상태를 `Done`으로 변경 |
+
+### 예시: 완료된 이슈 Description
+
+```markdown
+## Goal
+* AdMob 연동 및 코인 지급 루프 완성
+
+## Scope
+* AdMob SDK 초기화
+* Rewarded/Interstitial 광고 플로우
+
+## Acceptance
+* 광고 정상 노출
+* 완료 시 코인 증가
+
+---
+
+## Completed Work
+
+### Files Created/Modified
+- `mobile/src/services/adService.ts`: AdMob 서비스 구현
+- `mobile/src/store/coinStore.ts`: Zustand 코인 스토어
+- `mobile/package.json`: react-native-google-mobile-ads 추가
+
+### Implementation Details
+- `AdMobService` 클래스: Rewarded/Interstitial 광고 로드/표시
+- `useCoinStore`: Zustand + AsyncStorage 영속성
+- 테스트 광고 ID 자동 적용 (__DEV__ 모드)
+
+### Dependencies Added
+- `react-native-google-mobile-ads`: AdMob SDK
+- `zustand`: 상태 관리
+- `@react-native-async-storage/async-storage`: 영속성
+
+### Commit
+- Branch: `app-102`
+- Commit: `abc1234` - feat(ads): implement AdMob integration with coin rewards
+```
+
 ## Infrastructure Notes
 
 - **Backend Hosting**: Railway, Render, or Fly.io (free tier)
