@@ -1,28 +1,28 @@
 import React from 'react';
 import {
   SafeAreaView,
-  Text,
-  View,
   StyleSheet,
+  StatusBar,
 } from 'react-native';
+import { GameLoop } from '@/games';
 
 interface AppProps {}
 
 const App: React.FC<AppProps> = () => {
   return (
-    <SafeAreaView style={styles.container}>
-      <View>
-        <Text>Retrox Mobile</Text>
-      </View>
-    </SafeAreaView>
+    <>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.container}>
+        <GameLoop />
+      </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#000000',
   },
 });
 
