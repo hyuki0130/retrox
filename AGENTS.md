@@ -406,6 +406,67 @@ describe('ServiceName', () => {
   - Linear 이슈에서 작업을 가져와 상태/내용을 지속 업데이트
   - 작업 완료 후 Git 커밋 → 푸시 → PR/머지 순서로 진행 (필요 시 리뷰 후 병합)
 
+### 작업 루프 (MANDATORY)
+
+모든 작업은 다음 루프를 따릅니다:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Linear 이슈 생성/할당                                        │
+│     ↓                                                           │
+│  2. Worktree + Branch 생성 (이슈 ID 기반)                        │
+│     git worktree add worktree/{issue-id} -b {issue-id} origin/main │
+│     ↓                                                           │
+│  3. 작업 수행 (TDD 방식)                                         │
+│     - 테스트 작성 → 구현 → 리팩토링                              │
+│     - 커밋 전 검증: lint, typecheck, test, build                 │
+│     ↓                                                           │
+│  4. 커밋 & 푸시                                                  │
+│     git add . && git commit && git push -u origin {issue-id}    │
+│     ↓                                                           │
+│  5. main으로 머지                                                │
+│     git checkout main && git merge origin/{issue-id}            │
+│     ↓                                                           │
+│  6. main 통합 테스트 (BLOCKING)                                  │
+│     cd backend && npm test                                      │
+│     cd mobile && npm test (해당 시)                              │
+│     ↓                                                           │
+│  7. main 푸시                                                    │
+│     git push origin main                                        │
+│     ↓                                                           │
+│  8. Worktree 삭제                                                │
+│     git worktree remove worktree/{issue-id}                     │
+│     ↓                                                           │
+│  9. Linear 이슈 Done 처리                                        │
+│     ↓                                                           │
+│  10. (선택) 로컬 브랜치 삭제                                      │
+│      git branch -D {issue-id}                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 머지 후 통합 테스트 (BLOCKING)
+
+**main 브랜치에 머지 후 반드시 통합 테스트를 실행합니다.**
+
+```bash
+# main 브랜치에서 실행
+cd backend && npm install && npm run build && npm test
+cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
+```
+
+| 상황 | 조치 |
+|------|------|
+| 테스트 통과 | main 푸시 → 워크트리 삭제 → 이슈 Done |
+| 테스트 실패 | 실패 원인 분석 → 새 이슈 생성 → 새 워크트리에서 수정 |
+
+**테스트 실패 시 main에 직접 수정하지 않습니다.** 반드시 새 이슈/브랜치를 통해 수정합니다.
+
+### 워크트리 정리 규칙
+
+- 머지 완료된 워크트리는 **즉시 삭제**합니다.
+- 브랜치 히스토리는 원격에 보존되므로 로컬 삭제해도 무방합니다.
+- 장기 미사용 워크트리 (7일+)는 정리 대상입니다.
+
 ## Issue Tracking Guidelines (MANDATORY)
 
 ### 이슈 업데이트 원칙
