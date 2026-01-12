@@ -405,66 +405,84 @@ describe('ServiceName', () => {
 
 ## Task Management (Linear + Git Worktrees)
 
-### Linear MCP 사용 (MANDATORY)
+### Linear API 사용 (curl)
 
-Linear는 **MCP (Model Context Protocol)**를 통해 접근합니다. CLI가 아닌 MCP 도구를 사용하세요.
-
-**주요 MCP 도구:**
-- `linear_createIssue`: 이슈 생성
-- `linear_updateIssue`: 이슈 수정 (상태, 내용 등)
-- `linear_getIssue`: 이슈 조회
-- `linear_searchIssues`: 이슈 검색
-- `linear_getTeams`: 팀 목록 조회
-
-**이슈 생성 예시:**
-```
-linear_createIssue({
-  teamId: "retrox 팀 ID",
-  title: "[server-110] Backend Test Coverage 80%",
-  description: "## Goal\n* 테스트 커버리지 80% 달성\n...",
-  priority: 2,
-  stateId: "done 상태 ID"  // 완료된 작업인 경우
-})
-```
-
-**작업 완료 시 이슈 업데이트:**
-```
-linear_updateIssue({
-  issueId: "이슈 ID",
-  description: "기존 내용 + \n---\n## Completed Work\n...",
-  stateId: "done 상태 ID"
-})
-```
-
-**Linear API 직접 호출 (MCP 미사용 시):**
-
-환경변수 `LINEAR_API_KEY`가 설정되어 있어야 합니다.
+Linear는 **GraphQL API**를 curl로 직접 호출합니다. 환경변수 `LINEAR_TOKEN`이 설정되어 있어야 합니다.
 
 ```bash
-# 팀 조회
-curl -s -X POST https://api.linear.app/graphql \
-  -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_API_KEY" \
-  -d '{"query": "{ teams { nodes { id name key } } }"}'
+# ~/.zshrc에 추가
+export LINEAR_TOKEN="lin_api_xxxxx"
+```
 
-# 워크플로우 상태 조회
+**이슈 목록 조회 (미완료):**
+```bash
 curl -s -X POST https://api.linear.app/graphql \
   -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_API_KEY" \
-  -d '{"query": "{ workflowStates { nodes { id name type } } }"}'
+  -H "Authorization: $LINEAR_TOKEN" \
+  -d '{"query": "{ issues(filter: { state: { type: { nin: [\"completed\", \"canceled\"] } } }) { nodes { identifier title state { name } priority } } }"}' | jq '.data.issues.nodes'
+```
 
-# 이슈 생성
+**이슈 생성:**
+```bash
 curl -s -X POST https://api.linear.app/graphql \
   -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_API_KEY" \
+  -H "Authorization: $LINEAR_TOKEN" \
   -d '{
     "query": "mutation CreateIssue($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { id identifier url } } }",
     "variables": {
       "input": {
-        "teamId": "팀ID",
-        "title": "이슈 제목",
-        "stateId": "상태ID",
-        "description": "이슈 설명"
+        "teamId": "33ddd07b-8942-47d7-a1b4-110c0cb80551",
+        "title": "[server-123] 이슈 제목",
+        "stateId": "c5a86554-75e5-48f3-9367-c99770372016",
+        "description": "## Goal\\n* 목표 설명"
+      }
+    }
+  }'
+```
+
+**이슈 상태 업데이트 (Done 처리):**
+```bash
+curl -s -X POST https://api.linear.app/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: $LINEAR_TOKEN" \
+  -d '{
+    "query": "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
+    "variables": {
+      "id": "이슈UUID",
+      "input": {
+        "stateId": "ea3e052d-9afa-4c66-98e6-6eb8099092d6"
+      }
+    }
+  }'
+```
+
+**이슈 설명 업데이트:**
+```bash
+curl -s -X POST https://api.linear.app/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: $LINEAR_TOKEN" \
+  -d '{
+    "query": "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
+    "variables": {
+      "id": "이슈UUID",
+      "input": {
+        "description": "업데이트된 설명 내용"
+      }
+    }
+  }'
+```
+
+**이슈를 프로젝트에 연결:**
+```bash
+curl -s -X POST https://api.linear.app/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: $LINEAR_TOKEN" \
+  -d '{
+    "query": "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
+    "variables": {
+      "id": "이슈UUID",
+      "input": {
+        "projectId": "f2594889-8f9b-4db5-b888-4e69866688cd"
       }
     }
   }'
@@ -472,13 +490,16 @@ curl -s -X POST https://api.linear.app/graphql \
 
 **참고 ID:**
 - Team ID (Hyuki0130): `33ddd07b-8942-47d7-a1b4-110c0cb80551`
+- Project ID (retrox): `f2594889-8f9b-4db5-b888-4e69866688cd`
 - Done State ID: `ea3e052d-9afa-4c66-98e6-6eb8099092d6`
 - In Progress State ID: `9e72bb99-e9a1-4943-847d-6d71384e35dd`
 - Todo State ID: `c5a86554-75e5-48f3-9367-c99770372016`
+- Canceled State ID: `53d662ab-bc7d-478b-ab3b-9667ed3eaff3`
 
 ### 기본 설정
 
 - Linear 팀/프로젝트: 팀 `Hyuki0130`, 프로젝트 `retrox`에서 모든 작업을 관리합니다.
+- **새 이슈 생성 시 반드시 retrox 프로젝트에 연결합니다** (projectId 포함).
 - 이슈 ID 규칙: 모바일은 `app-123`, 서버는 `server-123` 형태로 발급합니다.
 - 이슈 제목은 `[app-123] ...`, `[server-123] ...` 형식으로 사용합니다.
 - 브랜치명은 이슈 ID와 동일하게 사용합니다.
