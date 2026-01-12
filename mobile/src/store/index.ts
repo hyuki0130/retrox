@@ -1,1 +1,1 @@
-export {};
+export { useCoinStore } from './coinStore';

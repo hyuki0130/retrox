@@ -1,1 +1,1 @@
-export {};
+export { AdService } from './adService';

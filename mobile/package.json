@@ -10,10 +10,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.21.0",
     "@shopify/react-native-skia": "^1.0.0",
     "react": "18.2.0",
     "react-native": "0.73.4",
-    "react-native-reanimated": "^3.6.0"
+    "react-native-google-mobile-ads": "^13.0.0",
+    "react-native-reanimated": "^3.6.0",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
