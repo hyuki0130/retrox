@@ -16,9 +16,9 @@ yarn-error.log*
 *.log
 
 # Build outputs
-/dist/
+dist/
 /build/
-/coverage/
+coverage/
 
 # React Native (iOS)
 /mobile/ios/Pods/
