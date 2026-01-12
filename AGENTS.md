@@ -741,10 +741,13 @@ graph TD
 - E2E Tests: X개 추가
 - Coverage: XX% → XX%
 
-### Commit
+### Commit & PR (필수)
 - Branch: `branch-name`
 - Commit: `commit-hash` - commit message
+- **PR: [#N](https://github.com/hyuki0130/retrox/pull/N)** ← 필수!
 ```
+
+> **중요**: PR 생성 후 반드시 PR 링크를 이슈 Description에 포함해야 합니다.
 
 ### 댓글(Comment) 활용
 
@@ -887,6 +890,49 @@ async getBalance(userId: string): Promise<number> {
 - Branch: `server-105`
 - Commit: `def5678` - fix(coin): handle null balance for new users
 ```
+
+## Documentation Guidelines (MANDATORY)
+
+### README 현행화 규칙
+
+**backend/** 또는 **mobile/** 디렉토리에 변경이 발생하면, 해당 README.md를 최신 내용으로 업데이트해야 합니다.
+
+#### 업데이트가 필요한 경우
+
+| 변경 유형 | 업데이트 필요 항목 |
+|----------|-------------------|
+| 새 모듈/기능 추가 | Architecture 다이어그램, Project Structure |
+| API 엔드포인트 추가/변경 | API Endpoints 테이블 |
+| 테스트 추가 | Testing 섹션, Coverage 수치 |
+| 의존성 추가 | Dependencies, Tech Stack |
+| 스크립트 추가 | Scripts Reference |
+| 환경변수 추가 | Environment Setup |
+| 배포 설정 변경 | Deployment 섹션 |
+
+#### README 파일 위치
+
+- `backend/README.md`: 백엔드 아키텍처, API, 테스트, 배포
+- `mobile/README.md`: 모바일 앱 아키텍처, 게임, 상태관리, 테스트
+
+#### 체크리스트 (커밋 전)
+
+- [ ] 새 모듈이 Architecture 다이어그램에 반영되었는가?
+- [ ] 새 API가 Endpoints 테이블에 추가되었는가?
+- [ ] 테스트 커버리지 수치가 최신인가?
+- [ ] 새 의존성이 Dependencies에 기록되었는가?
+
+### Linear 이슈 PR 링크 규칙
+
+**모든 이슈의 Completed Work 섹션에 PR 링크를 반드시 포함합니다.**
+
+```markdown
+### Commit & PR
+- Branch: `server-111`
+- Commit: `abc1234` - feat(api): add new endpoint
+- **PR: [#1](https://github.com/hyuki0130/retrox/pull/1)**
+```
+
+PR 링크가 없는 이슈는 불완전한 문서로 간주합니다.
 
 ## Infrastructure Notes
 
