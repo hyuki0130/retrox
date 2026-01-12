@@ -261,30 +261,132 @@ test(api): add coin service unit tests
 docs(readme): update setup instructions
 ```
 
-## Testing Patterns
+## TDD Development Guidelines (MANDATORY)
+
+### TDD 원칙
+
+모든 기능 구현은 **Test-Driven Development** 방식을 따릅니다:
+
+1. **Red**: 실패하는 테스트를 먼저 작성
+2. **Green**: 테스트를 통과하는 최소한의 코드 작성
+3. **Refactor**: 코드 품질 개선 (테스트는 계속 통과해야 함)
+
+### 테스트 작성 규칙
+
+#### 필수 테스트 커버리지
+
+| 항목 | 요구사항 |
+|------|----------|
+| Happy Path | 정상 동작 케이스 필수 |
+| Edge Cases | 경계값, 빈 값, null/undefined 등 |
+| Error Cases | 예외 상황, 에러 핸들링 |
+| Input Validation | 잘못된 입력값 처리 |
+
+#### Edge Case 체크리스트
+
+- [ ] 빈 배열/객체
+- [ ] null/undefined 입력
+- [ ] 경계값 (0, 음수, 최대값)
+- [ ] 중복 데이터
+- [ ] 존재하지 않는 리소스
+- [ ] 권한 없는 접근
+- [ ] 동시성 이슈 (해당 시)
+
+### 금지 사항 (BLOCKING)
+
+| 금지 항목 | 이유 |
+|-----------|------|
+| 테스트 통과용 임시 코드 | 실제 로직이 아닌 하드코딩 금지 |
+| `skip`, `only` 남용 | 모든 테스트가 실행되어야 함 |
+| 테스트 없이 커밋 | 테스트 통과 후에만 커밋 |
+| Mock 과다 사용 | 실제 동작을 검증해야 함 |
+
+### 검증 프로세스 (커밋 전 필수)
+
+```bash
+# 1. 린트 검사
+npm run lint
+
+# 2. 타입 체크
+npm run typecheck  # 또는 npx tsc --noEmit
+
+# 3. 테스트 실행
+npm test
+
+# 4. 빌드 검증
+npm run build
+```
+
+**모든 단계가 통과해야만 커밋 가능합니다.**
+
+### 테스트 실패 시 대응
+
+1. **실패 원인 분석**: 에러 메시지 확인
+2. **코드 수정**: 테스트가 아닌 구현 코드 수정
+3. **재검증**: 테스트 재실행
+4. **반복**: 통과할 때까지 2-3 반복
+
+**절대 테스트를 수정해서 통과시키지 않습니다** (테스트 자체가 잘못된 경우 제외)
+
+### 테스트 구조 표준
 
 ```typescript
-// Unit test structure
-describe('CoinService', () => {
-  let service: CoinService;
+describe('ServiceName', () => {
+  // Setup
+  let service: ServiceName;
+  let mockDependency: jest.Mocked<Dependency>;
 
   beforeEach(() => {
-    service = new CoinService(mockRepo);
+    mockDependency = createMockDependency();
+    service = new ServiceName(mockDependency);
   });
 
-  describe('addCoins', () => {
-    it('should increase user coins by amount', async () => {
-      const result = await service.addCoins('user-1', 500);
-      expect(result.coins).toBe(10500);
+  describe('methodName', () => {
+    // Happy path
+    describe('when valid input is provided', () => {
+      it('should return expected result', async () => {
+        const result = await service.methodName(validInput);
+        expect(result).toEqual(expectedOutput);
+      });
     });
 
-    it('should throw on negative amount', async () => {
-      await expect(service.addCoins('user-1', -100))
-        .rejects.toThrow(BadRequestException);
+    // Edge cases
+    describe('when edge case occurs', () => {
+      it('should handle empty input', async () => {
+        const result = await service.methodName([]);
+        expect(result).toEqual([]);
+      });
+
+      it('should handle boundary value', async () => {
+        const result = await service.methodName(0);
+        expect(result).toBe(0);
+      });
+    });
+
+    // Error cases
+    describe('when error condition exists', () => {
+      it('should throw NotFoundException for missing resource', async () => {
+        await expect(service.methodName('non-existent'))
+          .rejects.toThrow(NotFoundException);
+      });
+
+      it('should throw BadRequestException for invalid input', async () => {
+        await expect(service.methodName(-1))
+          .rejects.toThrow(BadRequestException);
+      });
     });
   });
 });
 ```
+
+### CI/CD 연동
+
+모든 PR은 다음 검사를 통과해야 머지 가능:
+
+- [ ] `npm run lint` 통과
+- [ ] `npm run typecheck` 통과
+- [ ] `npm test` 통과 (커버리지 80% 이상)
+- [ ] `npm run build` 성공
 
 ## Task Management (Linear + Git Worktrees)
 
