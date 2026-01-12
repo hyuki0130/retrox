@@ -1,11 +1,11 @@
 export class AddCoinsDto {
-  amount: number;
-  reason: string;
+  declare amount: number;
+  declare reason: string;
 }
 
 export class SpendCoinsDto {
-  amount: number;
-  reason: string;
+  declare amount: number;
+  declare reason: string;
 }
 
 export interface CoinLedgerEntry {

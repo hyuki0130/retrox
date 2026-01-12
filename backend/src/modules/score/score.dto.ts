@@ -1,6 +1,6 @@
 export class CreateScoreDto {
-  gameId: string;
-  score: number;
+  declare gameId: string;
+  declare score: number;
 }
 
 export interface ScoreEntry {
