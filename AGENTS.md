@@ -533,24 +533,53 @@ curl -s -X POST https://api.linear.app/graphql \
 │  4. 커밋 & 푸시                                                  │
 │     git add . && git commit && git push -u origin {issue-id}    │
 │     ↓                                                           │
-│  5. main으로 머지                                                │
-│     git checkout main && git merge origin/{issue-id}            │
+│  5. PR 생성 (gh CLI 사용)                                        │
+│     gh pr create --title "[issue-id] 제목" --body "설명"        │
 │     ↓                                                           │
-│  6. main 통합 테스트 (BLOCKING)                                  │
+│  6. PR 머지 (리뷰 후)                                            │
+│     gh pr merge --squash --delete-branch                        │
+│     ↓                                                           │
+│  7. main 통합 테스트 (BLOCKING)                                  │
+│     git checkout main && git pull origin main                   │
 │     cd backend && npm test                                      │
 │     cd mobile && npm test (해당 시)                              │
-│     ↓                                                           │
-│  7. main 푸시                                                    │
-│     git push origin main                                        │
 │     ↓                                                           │
 │  8. Worktree 삭제                                                │
 │     git worktree remove worktree/{issue-id}                     │
 │     ↓                                                           │
 │  9. Linear 이슈 Done 처리                                        │
-│     ↓                                                           │
-│  10. (선택) 로컬 브랜치 삭제                                      │
-│      git branch -D {issue-id}                                   │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### GitHub CLI (gh) 사용
+
+PR 생성 및 관리에 `gh` CLI를 사용합니다.
+
+**PR 생성:**
+```bash
+gh pr create --title "[app-111] Mobile Unit Tests" --body "## Summary
+- coinStore 테스트 추가
+- settingsStore 테스트 추가
+- adService 테스트 추가
+
+## Test Results
+- 54 tests passed
+- Coverage: 100%"
+```
+
+**PR 머지 (squash):**
+```bash
+gh pr merge --squash --delete-branch
+```
+
+**PR 목록 조회:**
+```bash
+gh pr list
+```
+
+**PR 상태 확인:**
+```bash
+gh pr status
 ```
 
 ### 머지 후 통합 테스트 (BLOCKING)
