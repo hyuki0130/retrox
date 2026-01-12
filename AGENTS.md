@@ -405,6 +405,39 @@ describe('ServiceName', () => {
 
 ## Task Management (Linear + Git Worktrees)
 
+### Linear MCP 사용 (MANDATORY)
+
+Linear는 **MCP (Model Context Protocol)**를 통해 접근합니다. CLI가 아닌 MCP 도구를 사용하세요.
+
+**주요 MCP 도구:**
+- `linear_createIssue`: 이슈 생성
+- `linear_updateIssue`: 이슈 수정 (상태, 내용 등)
+- `linear_getIssue`: 이슈 조회
+- `linear_searchIssues`: 이슈 검색
+- `linear_getTeams`: 팀 목록 조회
+
+**이슈 생성 예시:**
+```
+linear_createIssue({
+  teamId: "retrox 팀 ID",
+  title: "[server-110] Backend Test Coverage 80%",
+  description: "## Goal\n* 테스트 커버리지 80% 달성\n...",
+  priority: 2,
+  stateId: "done 상태 ID"  // 완료된 작업인 경우
+})
+```
+
+**작업 완료 시 이슈 업데이트:**
+```
+linear_updateIssue({
+  issueId: "이슈 ID",
+  description: "기존 내용 + \n---\n## Completed Work\n...",
+  stateId: "done 상태 ID"
+})
+```
+
+### 기본 설정
+
 - Linear 팀/프로젝트: 팀 `Hyuki0130`, 프로젝트 `retrox`에서 모든 작업을 관리합니다.
 - 이슈 ID 규칙: 모바일은 `app-123`, 서버는 `server-123` 형태로 발급합니다.
 - 이슈 제목은 `[app-123] ...`, `[server-123] ...` 형식으로 사용합니다.
