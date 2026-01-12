@@ -99,18 +99,33 @@ npm test -- --coverage
 ```bash
 cd backend
 
-# Unit tests
+# Unit tests (서비스/컨트롤러 개별 테스트)
 npm run test                         # All unit tests
 npm run test -- path/to/file.spec.ts # Single file
 npm run test -- --watch              # Watch mode
 
-# E2E tests
+# E2E tests (HTTP 엔드포인트 통합 테스트)
 npm run test:e2e                     # All e2e tests
 npm run test:e2e -- --grep "coins"   # Filter by name
 
-# Coverage
-npm run test:cov
+# Module tests (모듈 통합 테스트)
+npm run test -- --testPathPattern="module"
+
+# Coverage (80% 이상 필수)
+npm run test:cov                     # Unit + Module coverage
+npm run test:e2e:cov                 # E2E coverage (별도)
+
+# 전체 테스트 실행 (커밋 전 필수)
+npm run test:all                     # Unit + E2E + Coverage
 ```
+
+### 테스트 유형별 목적
+
+| 테스트 유형 | 파일 패턴 | 목적 | 커버리지 목표 |
+|------------|----------|------|--------------|
+| Unit Test | `*.spec.ts` | 개별 클래스/함수 격리 테스트 | 80%+ |
+| Module Test | `*.module.spec.ts` | 모듈 내 의존성 통합 테스트 | 포함 |
+| E2E Test | `*.e2e-spec.ts` | HTTP 요청/응답 전체 플로우 | 별도 측정 |
 
 ## Linting & Formatting
 
@@ -473,6 +488,39 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 
 모든 작업은 Linear 이슈에 **상세하게 기록**해야 합니다. 진행 상황뿐만 아니라 **실제 구현 내용**도 반드시 포함합니다.
 
+### 이슈 유형별 필수 기록 사항
+
+#### 1. 모듈/기능 추가 (feat)
+
+| 항목 | 필수 | 설명 |
+|------|------|------|
+| Architecture Diagram | **YES** | 모듈 간 관계도 (Mermaid/ASCII) |
+| Files Created/Modified | **YES** | 생성/수정된 파일 목록 |
+| API Endpoints | **YES** | 새로 추가된 엔드포인트 |
+| Data Models | **YES** | DB 스키마, DTO 변경 사항 |
+| Dependencies Added | **YES** | 새로 추가된 패키지 |
+| Key Code Diff | **YES** | 핵심 로직 코드 스니펫 |
+
+#### 2. 버그 수정 (fix)
+
+| 항목 | 필수 | 설명 |
+|------|------|------|
+| Root Cause | **YES** | 버그 발생 원인 분석 |
+| Symptoms | **YES** | 사용자가 경험한 증상 |
+| Solution | **YES** | 해결 방법 설명 |
+| Before/After Diff | **YES** | 수정 전후 코드 비교 |
+| Regression Risk | **YES** | 다른 기능 영향도 |
+| Test Cases Added | **YES** | 재발 방지 테스트 |
+
+#### 3. 리팩토링 (refactor)
+
+| 항목 | 필수 | 설명 |
+|------|------|------|
+| Motivation | **YES** | 리팩토링 이유 |
+| Changes Summary | **YES** | 변경 사항 요약 |
+| Performance Impact | Optional | 성능 변화 측정 결과 |
+| Breaking Changes | **YES** | API 호환성 변경 여부 |
+
 ### 이슈 설명(Description) 업데이트 형식
 
 작업 완료 시 이슈 Description에 다음 섹션을 추가합니다:
@@ -481,6 +529,26 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 ---
 
 ## Completed Work
+
+### Architecture (모듈 추가 시 필수)
+
+\`\`\`mermaid
+graph TD
+    A[Controller] --> B[Service]
+    B --> C[Repository]
+    B --> D[External API]
+\`\`\`
+
+또는 ASCII:
+\`\`\`
+┌─────────────┐     ┌─────────────┐
+│  Controller │────▶│   Service   │
+└─────────────┘     └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │  Prisma DB  │
+                    └─────────────┘
+\`\`\`
 
 ### Files Created/Modified
 - `path/to/file.ts`: 설명
@@ -498,8 +566,46 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 |--------|----------|-------------|
 | POST | /api/coins/add | 코인 지급 |
 
+### Key Code Changes (주요 Diff)
+
+\`\`\`diff
+// Before
+- const result = await this.repository.find();
++ // After - 페이지네이션 추가
++ const result = await this.repository.find({
++   take: limit,
++   skip: offset,
++ });
+\`\`\`
+
+### Bug Fix Details (버그 수정 시 필수)
+
+**Root Cause:**
+> 코인 잔액 계산 시 null 체크 누락으로 NaN 반환
+
+**Symptoms:**
+- 신규 사용자 코인 조회 시 NaN 표시
+- 광고 시청 후 코인 증가 안됨
+
+**Solution:**
+- `getBalance()` 메서드에 null coalescing 추가
+- 초기값 0으로 폴백 처리
+
+**Before/After:**
+\`\`\`diff
+- return result._sum.amount;
++ return result._sum.amount ?? 0;
+\`\`\`
+
+**Regression Risk:** 낮음 - 기존 사용자 동작에 영향 없음
+
 ### Dependencies Added (패키지 추가 시)
 - `package-name`: 용도 설명
+
+### Test Coverage
+- Unit Tests: X개 추가
+- E2E Tests: X개 추가
+- Coverage: XX% → XX%
 
 ### Commit
 - Branch: `branch-name`
@@ -522,7 +628,7 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 | PR 생성 | PR 링크 댓글로 추가 |
 | 머지 완료 | 상태를 `Done`으로 변경 |
 
-### 예시: 완료된 이슈 Description
+### 예시: 완료된 기능 추가 이슈
 
 ```markdown
 ## Goal
@@ -540,6 +646,18 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 
 ## Completed Work
 
+### Architecture
+
+\`\`\`
+┌─────────────────┐     ┌─────────────────┐
+│   GameScreen    │────▶│   AdService     │
+└─────────────────┘     └────────┬────────┘
+                                 │
+┌─────────────────┐     ┌────────▼────────┐
+│   CoinStore     │◀────│  AdMob SDK      │
+└─────────────────┘     └─────────────────┘
+\`\`\`
+
 ### Files Created/Modified
 - `mobile/src/services/adService.ts`: AdMob 서비스 구현
 - `mobile/src/store/coinStore.ts`: Zustand 코인 스토어
@@ -550,14 +668,90 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 - `useCoinStore`: Zustand + AsyncStorage 영속성
 - 테스트 광고 ID 자동 적용 (__DEV__ 모드)
 
+### Key Code Changes
+
+\`\`\`typescript
+// AdService - 보상형 광고 완료 핸들러
+rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+  useCoinStore.getState().addCoins(AD_REWARD_AMOUNT);
+});
+\`\`\`
+
 ### Dependencies Added
 - `react-native-google-mobile-ads`: AdMob SDK
 - `zustand`: 상태 관리
 - `@react-native-async-storage/async-storage`: 영속성
 
+### Test Coverage
+- Unit Tests: 8개 추가
+- E2E Tests: 2개 추가
+- Coverage: 65% → 78%
+
 ### Commit
 - Branch: `app-102`
 - Commit: `abc1234` - feat(ads): implement AdMob integration with coin rewards
+```
+
+### 예시: 완료된 버그 수정 이슈
+
+```markdown
+## Goal
+* 신규 사용자 코인 조회 시 NaN 표시 버그 수정
+
+## Symptoms
+* 회원가입 직후 홈 화면에서 코인이 "NaN"으로 표시
+* 광고 시청해도 코인이 증가하지 않음
+
+---
+
+## Completed Work
+
+### Bug Fix Details
+
+**Root Cause:**
+> `CoinService.getBalance()`에서 거래 내역이 없는 신규 사용자의 경우
+> Prisma aggregate가 `{ _sum: { amount: null } }`을 반환.
+> null 체크 없이 바로 반환하여 NaN 발생.
+
+**Symptoms:**
+- 신규 사용자 코인 조회 시 NaN 표시
+- 광고 시청 후 코인 증가 안됨 (NaN + 500 = NaN)
+
+**Solution:**
+- null coalescing operator (`??`) 추가하여 기본값 0 반환
+- 관련 테스트 케이스 3개 추가
+
+**Before/After:**
+\`\`\`diff
+async getBalance(userId: string): Promise<number> {
+  const result = await this.prisma.coinLedger.aggregate({
+    where: { userId },
+    _sum: { amount: true },
+  });
+- return result._sum.amount;
++ return result._sum.amount ?? 0;
+}
+\`\`\`
+
+**Regression Risk:** 낮음
+- 기존 사용자: 기존과 동일하게 합계 반환
+- 신규 사용자: 0 반환 (이전: NaN)
+
+### Files Modified
+- `backend/src/modules/coin/coin.service.ts`: null 체크 추가
+
+### Test Cases Added
+- `should return 0 when no transactions exist`
+- `should return 0 when sum is null`
+- `should handle new user with no ledger entries`
+
+### Test Coverage
+- Unit Tests: 3개 추가
+- Coverage: 72% → 75%
+
+### Commit
+- Branch: `server-105`
+- Commit: `def5678` - fix(coin): handle null balance for new users
 ```
 
 ## Infrastructure Notes
