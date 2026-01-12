@@ -1,18 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettingsStore } from '@/store';
+import { CoinHUD, FeaturedCarousel, GameGrid } from '@/components';
 
 export const HomeScreen: React.FC = () => {
   const getThemeColors = useSettingsStore((s) => s.getThemeColors);
   const colors = getThemeColors();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.primary }]}>RETROX</Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>Home Screen</Text>
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <CoinHUD />
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.primary }]}>RETROX</Text>
+          <Text style={[styles.subtitle, { color: colors.text }]}>90s Arcade Games</Text>
+        </View>
+        
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>FEATURED</Text>
+        <FeaturedCarousel />
+        
+        <GameGrid />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -21,19 +34,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  scrollContent: {
+    paddingTop: 60,
+  },
+  header: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontFamily: 'monospace',
     fontWeight: 'bold',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'monospace',
-    marginTop: 8,
+    marginTop: 4,
+    opacity: 0.7,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
 });
