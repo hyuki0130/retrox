@@ -50,10 +50,237 @@ React Native 기반 90년대 오락실 게임 모바일 앱
 ```bash
 cd mobile
 npm install
+```
 
-# iOS only
+## Native Setup (Required)
+
+> ⚠️ **중요**: 네이티브 모듈(Skia, Reanimated, AdMob)은 추가 설정이 필요합니다.
+
+### iOS Setup
+
+#### 1. CocoaPods 설치
+
+```bash
+# CocoaPods 설치 (없는 경우)
+sudo gem install cocoapods
+
+# Pod 설치
 cd ios && pod install && cd ..
 ```
+
+#### 2. Info.plist 설정 (AdMob)
+
+`ios/RetroX/Info.plist`에 추가:
+
+```xml
+<key>GADApplicationIdentifier</key>
+<string>ca-app-pub-3940256099942544~1458002511</string>
+<!-- 위는 테스트 App ID. 프로덕션에서는 실제 AdMob App ID로 교체 -->
+
+<key>SKAdNetworkItems</key>
+<array>
+  <dict>
+    <key>SKAdNetworkIdentifier</key>
+    <string>cstr6suwn9.skadnetwork</string>
+  </dict>
+  <dict>
+    <key>SKAdNetworkIdentifier</key>
+    <string>4fzdc2evr5.skadnetwork</string>
+  </dict>
+  <!-- 추가 SKAdNetwork ID는 AdMob 문서 참조 -->
+</array>
+
+<!-- App Tracking Transparency (iOS 14+) -->
+<key>NSUserTrackingUsageDescription</key>
+<string>맞춤형 광고를 제공하기 위해 사용됩니다.</string>
+```
+
+#### 3. Podfile 설정
+
+`ios/Podfile` 최소 iOS 버전 확인:
+
+```ruby
+platform :ios, '13.4'  # Skia 요구사항
+
+# Reanimated 설정
+pod 'RNReanimated', :path => '../node_modules/react-native-reanimated'
+```
+
+#### 4. Build Settings (Xcode)
+
+1. Xcode에서 `ios/RetroX.xcworkspace` 열기
+2. Build Settings → Enable Bitcode → `No`
+3. Build Settings → Other Linker Flags → `-ObjC` 추가
+
+#### 5. iOS 실행
+
+```bash
+# Simulator
+npm run ios
+
+# 특정 시뮬레이터
+npm run ios -- --simulator="iPhone 15 Pro"
+
+# 실제 기기
+npm run ios -- --device
+```
+
+### Android Setup
+
+#### 1. android/build.gradle
+
+프로젝트 레벨 `android/build.gradle`:
+
+```gradle
+buildscript {
+    ext {
+        minSdkVersion = 21
+        compileSdkVersion = 34
+        targetSdkVersion = 34
+        kotlinVersion = "1.9.0"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+#### 2. android/app/build.gradle
+
+앱 레벨 `android/app/build.gradle`:
+
+```gradle
+android {
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+    }
+}
+
+dependencies {
+    // Reanimated
+    implementation project(':react-native-reanimated')
+}
+```
+
+#### 3. MainApplication.kt (Reanimated)
+
+`android/app/src/main/java/.../MainApplication.kt`:
+
+```kotlin
+import com.facebook.react.defaults.DefaultReactActivityDelegate
+
+// onCreate에서
+override fun onCreate() {
+    super.onCreate()
+    // Reanimated 워크렛 초기화 (React Native 0.73+는 자동)
+}
+```
+
+#### 4. AndroidManifest.xml (AdMob)
+
+`android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<manifest>
+    <application>
+        <!-- AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
+        <!-- 위는 테스트 App ID. 프로덕션에서는 실제 AdMob App ID로 교체 -->
+
+        <!-- 광고 최적화를 위한 권한 (선택) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.AD_MANAGER_APP"
+            android:value="true"/>
+    </application>
+
+    <!-- 인터넷 권한 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+</manifest>
+```
+
+#### 5. babel.config.js (Reanimated)
+
+프로젝트 루트 `mobile/babel.config.js`:
+
+```javascript
+module.exports = {
+  presets: ['module:@react-native/babel-preset'],
+  plugins: [
+    // Reanimated 플러그인 - 반드시 마지막에!
+    'react-native-reanimated/plugin',
+  ],
+};
+```
+
+#### 6. Android 실행
+
+```bash
+# Emulator
+npm run android
+
+# 연결된 기기 목록
+adb devices
+
+# 특정 기기
+npm run android -- --deviceId=<device_id>
+```
+
+### Common Issues & Troubleshooting
+
+#### iOS
+
+| 문제 | 해결 |
+|------|------|
+| `Pod install` 실패 | `cd ios && pod deintegrate && pod install` |
+| Skia 빌드 에러 | Xcode → Clean Build Folder (Cmd+Shift+K) |
+| Bitcode 에러 | Build Settings → Enable Bitcode → No |
+| Signing 에러 | Xcode에서 Team 설정 확인 |
+
+#### Android
+
+| 문제 | 해결 |
+|------|------|
+| Gradle 빌드 실패 | `cd android && ./gradlew clean` |
+| SDK 버전 에러 | `minSdkVersion = 21` 확인 |
+| Reanimated 크래시 | `babel.config.js` 플러그인 순서 확인 |
+| AdMob 초기화 에러 | AndroidManifest.xml App ID 확인 |
+
+#### Metro
+
+```bash
+# 캐시 클리어
+npm start -- --reset-cache
+
+# Watchman 리셋 (macOS)
+watchman watch-del-all
+
+# node_modules 재설치
+rm -rf node_modules && npm install
+```
+
+### AdMob Test IDs
+
+개발 중에는 테스트 ID를 사용합니다 (이미 코드에 적용됨):
+
+| 타입 | Test ID |
+|------|---------|
+| App ID (iOS) | `ca-app-pub-3940256099942544~1458002511` |
+| App ID (Android) | `ca-app-pub-3940256099942544~3347511713` |
+| Rewarded | `ca-app-pub-3940256099942544/5224354917` |
+| Interstitial | `ca-app-pub-3940256099942544/1033173712` |
+| Banner | `ca-app-pub-3940256099942544/6300978111` |
+
+> 프로덕션 배포 시 실제 AdMob 계정에서 발급받은 ID로 교체 필요
 
 ### Run App
 
