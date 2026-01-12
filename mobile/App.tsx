@@ -1,29 +1,14 @@
 import React from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  StatusBar,
-} from 'react-native';
-import { GameLoop } from '@/games';
+import { StatusBar } from 'react-native';
+import { AppNavigator } from '@/navigation';
 
-interface AppProps {}
-
-const App: React.FC<AppProps> = () => {
+const App: React.FC = () => {
   return (
     <>
       <StatusBar barStyle="light-content" />
-      <SafeAreaView style={styles.container}>
-        <GameLoop />
-      </SafeAreaView>
+      <AppNavigator />
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-});
 
 export default App;
