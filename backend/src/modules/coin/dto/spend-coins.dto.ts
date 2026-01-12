@@ -2,13 +2,13 @@ import { IsInt, IsPositive, IsString, IsUUID, MaxLength } from 'class-validator'
 
 export class SpendCoinsDto {
   @IsUUID()
-  userId: string;
+  declare userId: string;
 
   @IsInt()
   @IsPositive()
-  amount: number;
+  declare amount: number;
 
   @IsString()
   @MaxLength(100)
-  reason: string;
+  declare reason: string;
 }
