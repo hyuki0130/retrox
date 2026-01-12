@@ -1,19 +1,44 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/navigation/types';
-import { useSettingsStore } from '@/store';
+import { useSettingsStore, useCoinStore } from '@/store';
+import { AdService } from '@/services/adService';
 
 type ResultsRouteProp = RootStackScreenProps<'Results'>['route'];
+
+const COIN_REWARD = 50;
 
 export const ResultsScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<ResultsRouteProp>();
+  const insets = useSafeAreaInsets();
   const { score, gameId, highScore } = route.params;
   const getThemeColors = useSettingsStore((s) => s.getThemeColors);
+  const { addCoins, rewardFromAd } = useCoinStore();
   const colors = getThemeColors();
 
+  const [hasDoubled, setHasDoubled] = useState(false);
+  const [isLoadingAd, setIsLoadingAd] = useState(false);
+
   const isNewHighScore = score > highScore;
+  const earnedCoins = Math.floor(score / 1000) * 10 + COIN_REWARD;
+
+  const handleWatchAd = async () => {
+    setIsLoadingAd(true);
+    try {
+      await AdService.initializeRewardedAd();
+      await AdService.showRewardedAd(() => {
+        rewardFromAd();
+        setHasDoubled(true);
+      });
+    } catch (error) {
+      Alert.alert('Ad Not Available', 'Please try again later.');
+    } finally {
+      setIsLoadingAd(false);
+    }
+  };
 
   const handlePlayAgain = () => {
     navigation.navigate('Gameplay', { gameId });
@@ -24,28 +49,60 @@ export const ResultsScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <Text style={[styles.title, { color: colors.primary }]}>GAME OVER</Text>
       
       {isNewHighScore && (
-        <Text style={[styles.newHighScore, { color: colors.secondary }]}>
-          NEW HIGH SCORE!
-        </Text>
+        <View style={[styles.highScoreBadge, { backgroundColor: colors.secondary }]}>
+          <Text style={styles.highScoreBadgeText}>NEW HIGH SCORE!</Text>
+        </View>
       )}
       
-      <View style={styles.scoreContainer}>
-        <Text style={[styles.label, { color: colors.text }]}>Score</Text>
+      <View style={styles.scoreSection}>
+        <Text style={[styles.label, { color: colors.text }]}>SCORE</Text>
         <Text style={[styles.score, { color: colors.primary }]}>
           {score.toLocaleString()}
         </Text>
       </View>
 
-      <View style={styles.scoreContainer}>
-        <Text style={[styles.label, { color: colors.text }]}>High Score</Text>
+      <View style={styles.scoreSection}>
+        <Text style={[styles.label, { color: colors.text }]}>HIGH SCORE</Text>
         <Text style={[styles.highScore, { color: colors.text }]}>
           {Math.max(score, highScore).toLocaleString()}
         </Text>
       </View>
+
+      <View style={[styles.coinsCard, { backgroundColor: '#1a1a1a' }]}>
+        <Text style={styles.coinIcon}>💰</Text>
+        <View style={styles.coinInfo}>
+          <Text style={[styles.coinLabel, { color: colors.text }]}>Coins Earned</Text>
+          <Text style={[styles.coinValue, { color: colors.primary }]}>
+            +{hasDoubled ? earnedCoins * 2 : earnedCoins}
+          </Text>
+        </View>
+        {hasDoubled && (
+          <View style={[styles.doubledBadge, { backgroundColor: colors.secondary }]}>
+            <Text style={styles.doubledText}>2X</Text>
+          </View>
+        )}
+      </View>
+
+      {!hasDoubled && (
+        <TouchableOpacity 
+          style={[styles.adButton, { backgroundColor: colors.secondary }]}
+          onPress={handleWatchAd}
+          disabled={isLoadingAd}
+        >
+          {isLoadingAd ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.adIcon}>🎬</Text>
+              <Text style={styles.adButtonText}>Watch Ad to Double Coins!</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
@@ -69,46 +126,109 @@ export const ResultsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   title: {
-    fontSize: 36,
+    fontSize: 40,
     fontFamily: 'monospace',
     fontWeight: 'bold',
+    marginTop: 24,
   },
-  newHighScore: {
-    fontSize: 18,
-    fontFamily: 'monospace',
-    fontWeight: 'bold',
-    marginTop: 8,
+  highScoreBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
   },
-  scoreContainer: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  label: {
+  highScoreBadgeText: {
+    color: '#fff',
     fontSize: 14,
     fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  scoreSection: {
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  label: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    opacity: 0.7,
   },
   score: {
-    fontSize: 48,
+    fontSize: 56,
     fontFamily: 'monospace',
     fontWeight: 'bold',
   },
   highScore: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: 'monospace',
   },
-  buttonContainer: {
-    marginTop: 48,
+  coinsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     width: '100%',
-    gap: 16,
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 32,
+  },
+  coinIcon: {
+    fontSize: 32,
+  },
+  coinInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  coinLabel: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    opacity: 0.7,
+  },
+  coinValue: {
+    fontSize: 24,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  doubledBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  doubledText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  adButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  adIcon: {
+    fontSize: 20,
+  },
+  adButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    width: '100%',
+    marginTop: 32,
+    gap: 12,
   },
   button: {
-    paddingVertical: 16,
-    borderRadius: 8,
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 12,
     alignItems: 'center',
   },
   homeButton: {
@@ -118,7 +238,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#000000',
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'monospace',
     fontWeight: 'bold',
   },
