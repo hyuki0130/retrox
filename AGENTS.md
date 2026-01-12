@@ -410,9 +410,14 @@ describe('ServiceName', () => {
 Linear는 **GraphQL API**를 curl로 직접 호출합니다. 환경변수 `LINEAR_TOKEN`이 설정되어 있어야 합니다.
 
 ```bash
-# ~/.zshrc에 추가
+# ~/.zshrc에 이미 설정되어 있음
 export LINEAR_TOKEN="lin_api_xxxxx"
+
+# 새 터미널 세션에서 토큰이 없으면 source 실행
+source ~/.zshrc
 ```
+
+> **참고**: `LINEAR_TOKEN`은 `~/.zshrc`에 저장되어 있습니다. 환경변수가 로드되지 않은 경우 `source ~/.zshrc` 실행 후 사용하세요.
 
 **이슈 목록 조회 (미완료):**
 ```bash
