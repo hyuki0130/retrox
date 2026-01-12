@@ -436,6 +436,46 @@ linear_updateIssue({
 })
 ```
 
+**Linear API 직접 호출 (MCP 미사용 시):**
+
+환경변수 `LINEAR_API_KEY`가 설정되어 있어야 합니다.
+
+```bash
+# 팀 조회
+curl -s -X POST https://api.linear.app/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: $LINEAR_API_KEY" \
+  -d '{"query": "{ teams { nodes { id name key } } }"}'
+
+# 워크플로우 상태 조회
+curl -s -X POST https://api.linear.app/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: $LINEAR_API_KEY" \
+  -d '{"query": "{ workflowStates { nodes { id name type } } }"}'
+
+# 이슈 생성
+curl -s -X POST https://api.linear.app/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: $LINEAR_API_KEY" \
+  -d '{
+    "query": "mutation CreateIssue($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { id identifier url } } }",
+    "variables": {
+      "input": {
+        "teamId": "팀ID",
+        "title": "이슈 제목",
+        "stateId": "상태ID",
+        "description": "이슈 설명"
+      }
+    }
+  }'
+```
+
+**참고 ID:**
+- Team ID (Hyuki0130): `33ddd07b-8942-47d7-a1b4-110c0cb80551`
+- Done State ID: `ea3e052d-9afa-4c66-98e6-6eb8099092d6`
+- In Progress State ID: `9e72bb99-e9a1-4943-847d-6d71384e35dd`
+- Todo State ID: `c5a86554-75e5-48f3-9367-c99770372016`
+
 ### 기본 설정
 
 - Linear 팀/프로젝트: 팀 `Hyuki0130`, 프로젝트 `retrox`에서 모든 작업을 관리합니다.
