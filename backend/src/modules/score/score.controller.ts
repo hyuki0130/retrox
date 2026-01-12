@@ -1,44 +1,53 @@
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
-import { Score } from '@prisma/client';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  ParseIntPipe,
+  DefaultValuePipe,
+} from '@nestjs/common';
 
 import { ScoreService } from './score.service';
-import { CreateScoreDto, ScoreEntry, GameRanking } from './score.dto';
+import { CreateScoreDto } from './dto';
 
-@Controller()
+@Controller('scores')
 export class ScoreController {
   constructor(private readonly scoreService: ScoreService) {}
 
-  @Post('users/:userId/scores')
-  async create(
-    @Param('userId') userId: string,
-    @Body() dto: CreateScoreDto,
-  ): Promise<Score> {
-    return this.scoreService.create(userId, dto);
+  @Post()
+  async create(@Body() dto: CreateScoreDto) {
+    return this.scoreService.create(dto);
   }
 
-  @Get('users/:userId/scores')
+  @Get('user/:userId')
   async getUserScores(
-    @Param('userId') userId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
     @Query('gameId') gameId?: string,
-  ): Promise<ScoreEntry[]> {
-    return this.scoreService.getUserScores(userId, gameId);
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+  ) {
+    return this.scoreService.getUserScores(userId, gameId, limit);
   }
 
-  @Get('games/:gameId/ranking')
+  @Get('ranking/:gameId')
   async getGameRanking(
     @Param('gameId') gameId: string,
-    @Query('limit') limit?: string,
-  ): Promise<GameRanking> {
-    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
-    return this.scoreService.getGameRanking(gameId, parsedLimit);
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number,
+  ) {
+    return this.scoreService.getGameRanking(gameId, limit);
   }
 
-  @Get('users/:userId/scores/:gameId/best')
-  async getUserBestScore(
-    @Param('userId') userId: string,
+  @Get('rank/:userId/:gameId')
+  async getUserRank(
+    @Param('userId', ParseUUIDPipe) userId: string,
     @Param('gameId') gameId: string,
-  ): Promise<{ bestScore: number }> {
-    const bestScore = await this.scoreService.getUserBestScore(userId, gameId);
-    return { bestScore };
+  ) {
+    const result = await this.scoreService.getUserRank(userId, gameId);
+    if (!result) {
+      return { rank: null, score: null, message: 'No scores found' };
+    }
+    return result;
   }
 }
