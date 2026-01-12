@@ -521,6 +521,17 @@ cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
 | Performance Impact | Optional | 성능 변화 측정 결과 |
 | Breaking Changes | **YES** | API 호환성 변경 여부 |
 
+#### 4. 테스트 추가/개선 (test)
+
+| 항목 | 필수 | 설명 |
+|------|------|------|
+| Test Strategy | **YES** | 테스트 전략 및 접근 방식 |
+| Test Files Created | **YES** | 생성된 테스트 파일 목록 |
+| Test Cases Summary | **YES** | 테스트 케이스 유형별 개수 |
+| Coverage Before/After | **YES** | 커버리지 변화 (XX% → XX%) |
+| Infrastructure Changes | Optional | 테스트 설정/의존성 변경 |
+| Uncovered Areas | Optional | 여전히 미커버된 영역 및 이유 |
+
 ### 이슈 설명(Description) 업데이트 형식
 
 작업 완료 시 이슈 Description에 다음 섹션을 추가합니다:
