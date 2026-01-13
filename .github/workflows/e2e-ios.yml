@@ -69,6 +69,7 @@ jobs:
 
       - name: Rebuild Detox Framework Cache
         if: steps.cache-detox-framework.outputs.cache-hit != 'true'
+        working-directory: mobile
         run: detox rebuild-framework-cache
 
       - name: Cache DerivedData
