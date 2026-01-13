@@ -146,8 +146,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
   return (
     <View style={styles.container} testID="shooter-container">
-      <Text style={styles.score}>SCORE: {score}</Text>
-      <Text testID="shooter-score" style={styles.hiddenScore}>{score}</Text>
+      <Text testID="shooter-score" style={styles.score}>SCORE: {score}</Text>
 
       <Canvas style={styles.canvas} testID="shooter-canvas">
         <Rect x={playerX - PLAYER_SIZE / 2} y={height - 100} width={PLAYER_SIZE} height={PLAYER_SIZE} color="#00ff9d" />
@@ -190,7 +189,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   canvas: { flex: 1 },
   score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', textAlign: 'center', paddingTop: 50, fontFamily: 'monospace' },
-  hiddenScore: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   controls: { flexDirection: 'row', justifyContent: 'space-around', paddingBottom: 40, paddingHorizontal: 20 },
   controlBtn: { backgroundColor: '#333', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 8, borderWidth: 2, borderColor: '#00ff9d' },
   controlText: { color: '#00ff9d', fontSize: 18, fontWeight: 'bold' },
