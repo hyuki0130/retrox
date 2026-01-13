@@ -10,6 +10,13 @@ echo -e "${GREEN}=== RetroX E2E Test Runner (Android) ===${NC}"
 echo ""
 
 detect_emulator() {
+    # Check DETOX_AVD_NAME first (used by .detoxrc.js)
+    if [ -n "$DETOX_AVD_NAME" ]; then
+        echo "$DETOX_AVD_NAME"
+        return
+    fi
+    
+    # Legacy support for EMULATOR_NAME
     if [ -n "$EMULATOR_NAME" ]; then
         echo "$EMULATOR_NAME"
         return
@@ -24,9 +31,12 @@ detect_emulator() {
 }
 
 EMULATOR_NAME=$(detect_emulator)
+# Export DETOX_AVD_NAME for .detoxrc.js to use
+export DETOX_AVD_NAME="$EMULATOR_NAME"
 CONFIGURATION="${CONFIGURATION:-android.emu.debug}"
 
 echo -e "Using emulator: ${GREEN}$EMULATOR_NAME${NC}"
+echo -e "DETOX_AVD_NAME: ${GREEN}$DETOX_AVD_NAME${NC}"
 echo -e "Configuration: ${GREEN}$CONFIGURATION${NC}"
 echo ""
 
