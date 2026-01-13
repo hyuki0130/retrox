@@ -46,11 +46,11 @@ echo "Simulator ready"
 
 # Step 5: Build Detox
 echo -e "${YELLOW}[4/5] Building Detox ($CONFIGURATION)...${NC}"
-detox build --configuration "$CONFIGURATION"
+npx detox build --configuration "$CONFIGURATION"
 
 # Step 6: Run E2E Tests
 echo -e "${YELLOW}[5/5] Running E2E Tests...${NC}"
-detox test --configuration "$CONFIGURATION" --cleanup
+npx detox test --configuration "$CONFIGURATION" --cleanup
 
 echo ""
 echo -e "${GREEN}=== E2E Tests Complete ===${NC}"
