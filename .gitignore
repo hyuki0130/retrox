@@ -23,6 +23,7 @@ coverage/
 # React Native (iOS)
 /mobile/ios/Pods/
 /mobile/ios/build/
+/mobile/ios/.xcode.env.local
 
 # React Native (Android)
 /mobile/android/.gradle/
