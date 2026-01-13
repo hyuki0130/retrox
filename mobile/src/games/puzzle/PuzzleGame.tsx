@@ -151,8 +151,10 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   return (
     <View style={styles.container} testID="puzzle-container">
       <View style={styles.header}>
-        <Text style={styles.score}>SCORE: <Text testID="puzzle-score">{score}</Text></Text>
-        <Text style={styles.moves}>MOVES: <Text testID="puzzle-moves">{moves}</Text></Text>
+        <Text style={styles.score}>SCORE: {score}</Text>
+        <Text style={styles.moves}>MOVES: {moves}</Text>
+        <Text testID="puzzle-score" style={styles.hiddenText}>{score}</Text>
+        <Text testID="puzzle-moves" style={styles.hiddenText}>{moves}</Text>
       </View>
 
       <Canvas style={[styles.canvas, { height: CELL_SIZE * GRID_SIZE + 20 }]} testID="puzzle-canvas">
@@ -208,6 +210,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 20 },
   score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
   moves: { color: '#ffff00', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
+  hiddenText: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   canvas: { marginHorizontal: 10 },
   touchGrid: { position: 'absolute', top: 90, left: 10, flexDirection: 'row', flexWrap: 'wrap', width: CELL_SIZE * GRID_SIZE },
   touchCell: { opacity: 0 },
