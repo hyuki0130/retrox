@@ -87,11 +87,11 @@ jobs:
 
       - name: Build for Detox
         working-directory: mobile
-        run: detox build --configuration ios.sim.release
+        run: detox build --configuration ios.sim.debug
 
       - name: Run E2E Tests
         working-directory: mobile
-        run: detox test --configuration ios.sim.release --cleanup --headless
+        run: detox test --configuration ios.sim.debug --cleanup --headless
 
       - name: Upload artifacts on failure
         if: failure()
