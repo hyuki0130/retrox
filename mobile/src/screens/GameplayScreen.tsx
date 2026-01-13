@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/navigation/types';
@@ -89,7 +89,6 @@ export const GameplayScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar hidden />
       
       <View style={[styles.hud, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.pauseButton} onPress={handlePause}>

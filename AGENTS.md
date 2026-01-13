@@ -953,3 +953,198 @@ PR 링크가 없는 이슈는 불완전한 문서로 간주합니다.
 - Keep game assets under 50MB total
 - Implement game loop with `requestAnimationFrame`
 - Sound: use `expo-av` or `react-native-sound`
+
+## Mobile E2E Testing Guidelines (MANDATORY)
+
+### Detox E2E 테스트 프레임워크
+
+모바일 앱의 모든 기능 추가/변경 시 **Detox E2E 테스트**가 필수입니다.
+
+### E2E 테스트 Commands
+
+```bash
+cd mobile
+
+# E2E 빌드
+npm run e2e:build:ios              # iOS 디버그 빌드
+npm run e2e:build:ios:release      # iOS 릴리즈 빌드
+npm run e2e:build:android          # Android 빌드
+
+# E2E 테스트 실행
+npm run e2e:test:ios               # iOS 테스트
+npm run e2e:test:ios:release       # iOS 릴리즈 테스트
+npm run e2e:test:android           # Android 테스트
+```
+
+### 테스트 파일 구조
+
+```
+mobile/e2e/
+├── jest.config.js
+├── flows/
+│   ├── app.test.ts           # 앱 실행/네비게이션
+│   ├── shooter.test.ts       # 슈터 게임 플레이
+│   ├── puzzle.test.ts        # 퍼즐 게임 플레이
+│   ├── ads.test.ts           # 광고 시스템
+│   └── [feature].test.ts     # 새 기능별 테스트
+└── helpers/
+    └── testHelpers.ts
+```
+
+### 기능별 E2E 테스트 요구사항 (MANDATORY)
+
+모바일 기능 추가 시 **반드시 해당 기능의 E2E 테스트를 함께 작성**해야 합니다.
+
+| 기능 유형 | 필수 테스트 항목 |
+|----------|-----------------|
+| 새 게임 추가 | 게임 진입, 플레이 동작, 게임오버, 일시정지/재개 |
+| 새 화면 추가 | 화면 진입, UI 요소 표시, 네비게이션 |
+| 광고 기능 변경 | 광고 로드, 완료 콜백, 실패 처리 |
+| 코인 시스템 변경 | 코인 표시, 증가/감소, 잔액 부족 처리 |
+| 설정 기능 추가 | 토글 동작, 설정 저장/복원 |
+
+### testID 규칙
+
+Detox가 UI 요소를 인식하려면 `testID` prop이 필수입니다.
+
+```typescript
+// 네이밍 규칙: {화면/기능}-{요소}-{상태?}
+<TouchableOpacity testID="shooter-move-left" />
+<Text testID="coin-balance" />
+<View testID="puzzle-cell-0-0" />
+<TouchableOpacity testID="watch-ad-button" />
+```
+
+| 컴포넌트 유형 | testID 패턴 | 예시 |
+|--------------|-------------|------|
+| 버튼 | `{feature}-{action}` | `shooter-fire`, `watch-ad-button` |
+| 텍스트 | `{feature}-{data}` | `coin-balance`, `shooter-score` |
+| 그리드 셀 | `{feature}-cell-{row}-{col}` | `puzzle-cell-0-0` |
+| 상태 뷰 | `{feature}-{state}` | `shooter-gameover`, `ad-loading` |
+
+### E2E 테스트 작성 표준
+
+```typescript
+import { device, element, by, expect, waitFor } from 'detox';
+
+describe('Feature Name', () => {
+  beforeAll(async () => {
+    await device.launchApp({ newInstance: true });
+  });
+
+  beforeEach(async () => {
+    await device.reloadReactNative();
+  });
+
+  describe('Happy Path', () => {
+    it('should do expected behavior', async () => {
+      await element(by.id('feature-button')).tap();
+      await expect(element(by.id('feature-result'))).toBeVisible();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle failure gracefully', async () => {
+      await device.setURLBlacklist(['.*api.*']);
+      await element(by.id('feature-button')).tap();
+      await expect(element(by.id('error-message'))).toBeVisible();
+      await device.setURLBlacklist([]);
+    });
+  });
+});
+```
+
+### 금지 사항 (BLOCKING - E2E 테스트)
+
+| 금지 항목 | 이유 |
+|-----------|------|
+| **테스트 통과용 임시 코드** | 실제 기능이 아닌 하드코딩으로 테스트 통과 금지 |
+| **`.skip()` 또는 `.only()` 커밋** | 모든 테스트가 실행되어야 함 |
+| **무관한 테스트 추가** | 업무/이슈와 직접 관련된 테스트만 추가 |
+| **testID 없이 기능 구현** | Detox 테스트 불가능 |
+| **E2E 테스트 없이 PR 생성** | 기능 추가 시 테스트 필수 |
+| **테스트 삭제로 CI 통과** | 실패하는 테스트는 코드를 수정해서 해결 |
+
+### 테스트-업무 매칭 규칙 (MANDATORY)
+
+**E2E 테스트는 해당 Linear 이슈/업무와 직접 관련된 기능만 테스트해야 합니다.**
+
+```
+✅ 올바른 예시:
+- 이슈: "슈터 게임 파워업 아이템 추가"
+- 테스트: shooter-powerup.test.ts (파워업 획득, 효과 적용, 지속시간)
+
+❌ 잘못된 예시:
+- 이슈: "슈터 게임 파워업 아이템 추가"  
+- 테스트: 퍼즐 게임 관련 테스트 추가 (무관한 테스트)
+```
+
+### CI/CD E2E 테스트 통합
+
+모든 모바일 PR은 다음 E2E 검사를 **통과해야만 머지 가능**합니다:
+
+```yaml
+# .github/workflows/e2e-ios.yml
+jobs:
+  e2e-ios:
+    runs-on: macos-14
+    steps:
+      - name: Run E2E Tests
+        run: |
+          cd mobile
+          npm run e2e:build:ios:release
+          npm run e2e:test:ios:release
+```
+
+### PR 머지 조건 (Mobile)
+
+모바일 관련 PR은 다음 **모든 조건**을 충족해야 머지됩니다:
+
+| 조건 | 확인 방법 |
+|------|----------|
+| Unit 테스트 통과 | `npm test` |
+| E2E 테스트 통과 | `npm run e2e:test:ios` |
+| 린트 통과 | `npm run lint` |
+| 타입체크 통과 | `npm run typecheck` |
+| 빌드 성공 | `npm run build:ios` |
+
+**E2E 테스트 실패 시 절대 머지하지 않습니다.**
+
+### 테스트 실패 대응
+
+1. **실패 원인 분석**: Detox 에러 로그 확인
+2. **구현 코드 수정**: 테스트가 아닌 앱 코드 수정
+3. **재실행**: `npm run e2e:test:ios`
+4. **반복**: 통과할 때까지 2-3 반복
+
+**절대 테스트를 수정/삭제해서 CI를 통과시키지 않습니다.**
+
+### 예외 상황
+
+| 상황 | 허용 조치 |
+|------|----------|
+| 테스트 자체 버그 | 테스트 수정 가능 (PR 설명에 명시) |
+| 환경 의존 flaky 테스트 | `retry` 추가 또는 `waitFor` timeout 조정 |
+| 외부 서비스 의존 | `device.setURLBlacklist()` 또는 mock 사용 |
+
+### 광고 테스트 특이사항
+
+AdMob 광고는 네이티브 오버레이이므로 특별한 처리가 필요합니다:
+
+```typescript
+// 테스트 광고 닫기 (좌표 기반)
+await device.tap({ x: 30, y: 60 });
+
+// 광고 네트워크 차단 (실패 시나리오)
+await device.setURLBlacklist(['.*googlesyndication.*', '.*doubleclick.*']);
+
+// 광고 로드 대기
+await new Promise(resolve => setTimeout(resolve, 6000));
+```
+
+### 참고 문서
+
+- [Detox Official Docs](https://wix.github.io/Detox/)
+- [Detox Actions API](https://wix.github.io/Detox/docs/api/actions)
+- [Detox Matchers API](https://wix.github.io/Detox/docs/api/matchers)
+- Linear Issue: HYU-47 (Detox E2E 테스트 자동화 구축)
