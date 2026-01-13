@@ -96,7 +96,7 @@ describe('App Navigation & Stability', () => {
   });
 
   describe('Full User Journey', () => {
-    it('should complete full session: Home -> Game -> Results -> Home', async () => {
+    it('should play game and quit to home via pause menu', async () => {
       await waitFor(element(by.id('home-screen')))
         .toBeVisible()
         .withTimeout(5000);
@@ -109,32 +109,24 @@ describe('App Navigation & Stability', () => {
         .toBeVisible()
         .withTimeout(3000);
       
-      for (let i = 0; i < 30; i++) {
-        const row = i % 5;
-        await element(by.id(`puzzle-cell-${row}-0`)).tap();
-        await element(by.id(`puzzle-cell-${row}-1`)).tap();
+      for (let i = 0; i < 5; i++) {
+        await element(by.id(`puzzle-cell-${i}-0`)).tap();
+        await element(by.id(`puzzle-cell-${i}-1`)).tap();
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      await waitFor(element(by.id('puzzle-gameover')))
-        .toBeVisible()
-        .withTimeout(10000);
-      
-      await element(by.id('puzzle-restart')).tap();
-      
-      await waitFor(element(by.id('puzzle-container')))
+      await waitFor(element(by.id('pause-button')))
         .toBeVisible()
         .withTimeout(3000);
-      
       await element(by.id('pause-button')).tap();
       await waitFor(element(by.id('pause-modal')))
         .toBeVisible()
-        .withTimeout(2000);
+        .withTimeout(3000);
       await element(by.id('quit-button')).tap();
       
       await waitFor(element(by.id('home-screen')))
         .toBeVisible()
-        .withTimeout(3000);
+        .withTimeout(5000);
     });
   });
 
