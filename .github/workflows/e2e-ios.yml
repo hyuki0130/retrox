@@ -4,18 +4,22 @@ on:
   pull_request:
     paths:
       - 'mobile/**'
+      - '.github/workflows/e2e-ios.yml'
   push:
     branches: [main]
     paths:
       - 'mobile/**'
+      - '.github/workflows/e2e-ios.yml'
 
 jobs:
   e2e-ios:
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,18 +35,48 @@ jobs:
         run: |
           brew tap wix/brew
           brew install applesimutils
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
 
       - name: Install dependencies
         working-directory: mobile
         run: npm ci
 
-      - name: Clean iOS build cache
-        working-directory: mobile
-        run: rm -rf ios/build ios/Pods ios/Podfile.lock
+      - name: Cache CocoaPods
+        id: cache-cocoapods
+        uses: actions/cache@v4
+        with:
+          path: |
+            mobile/ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ runner.os }}-${{ hashFiles('mobile/ios/Podfile.lock') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
 
       - name: Install CocoaPods
+        if: steps.cache-cocoapods.outputs.cache-hit != 'true'
         working-directory: mobile/ios
-        run: pod install
+        run: pod install --repo-update
+
+      - name: Cache Detox Framework
+        id: cache-detox-framework
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Detox/ios
+          key: detox-framework-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+
+      - name: Rebuild Detox Framework Cache
+        if: steps.cache-detox-framework.outputs.cache-hit != 'true'
+        run: detox rebuild-framework-cache
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: mobile/ios/build
+          key: derived-data-${{ runner.os }}-${{ hashFiles('mobile/ios/Podfile.lock', 'mobile/package-lock.json') }}
+          restore-keys: |
+            derived-data-${{ runner.os }}-
 
       - name: Boot iOS Simulator
         run: |
