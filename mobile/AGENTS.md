@@ -56,7 +56,8 @@ npm test -- --coverage
 cd mobile
 
 # LOCAL FIRST: Always run E2E tests locally before pushing
-./scripts/e2e-ci-ios.sh              # Recommended: Auto-detects simulator
+./scripts/e2e-ci-ios.sh              # iOS: Auto-detects simulator
+./scripts/e2e-ci-android.sh          # Android: Auto-detects emulator
 
 # Manual commands (if needed)
 npm run e2e:build:ios                # iOS debug build
@@ -64,7 +65,7 @@ npm run e2e:build:ios:release        # iOS release build
 npm run e2e:test:ios                 # iOS tests
 npm run e2e:test:ios:release         # iOS release tests
 
-# Android
+# Android manual
 npm run e2e:build:android            # Android build
 npm run e2e:test:android             # Android tests
 ```
@@ -251,17 +252,47 @@ await device.setURLBlacklist(['.*googlesyndication.*', '.*doubleclick.*']);
 await new Promise(resolve => setTimeout(resolve, 6000));
 ```
 
+### Pre-Commit Checklist (MANDATORY)
+
+**커밋 전 반드시 로컬에서 모든 테스트 통과 확인!**
+
+```bash
+cd mobile
+
+# 1. Lint & Type Check
+npm run lint && npm run typecheck
+
+# 2. Unit Tests
+npm test
+
+# 3. E2E Tests (iOS)
+./scripts/e2e-ci-ios.sh
+
+# 4. E2E Tests (Android) - if Android code changed
+./scripts/e2e-ci-android.sh
+```
+
+**One-liner (iOS only):**
+```bash
+npm run lint && npm run typecheck && npm test && ./scripts/e2e-ci-ios.sh
+```
+
+**One-liner (Full - iOS + Android):**
+```bash
+npm run lint && npm run typecheck && npm test && ./scripts/e2e-ci-ios.sh && ./scripts/e2e-ci-android.sh
+```
+
 ### PR Merge Conditions
 
 | Condition | Verification |
 |-----------|--------------|
-| Unit tests pass | `npm test` |
-| E2E tests pass | `./scripts/e2e-ci-ios.sh` |
 | Lint pass | `npm run lint` |
 | Type check pass | `npm run typecheck` |
-| Build succeeds | `npm run build:ios` |
+| Unit tests pass | `npm test` |
+| E2E tests (iOS) pass | `./scripts/e2e-ci-ios.sh` |
+| E2E tests (Android) pass | `./scripts/e2e-ci-android.sh` |
 
-**E2E test failure = NO MERGE.**
+**모든 테스트 통과 = 커밋 가능. 실패 시 커밋 금지.**
 
 ### Exception Handling
 
