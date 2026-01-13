@@ -11,11 +11,15 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.21.0",
+    "@react-navigation/bottom-tabs": "^7.9.1",
+    "@react-navigation/native": "^7.1.27",
+    "@react-navigation/native-stack": "^7.9.1",
     "@shopify/react-native-skia": "^1.0.0",
     "react": "18.2.0",
     "react-native": "0.73.4",
     "react-native-google-mobile-ads": "^12.4.0",
     "react-native-reanimated": "^3.6.3",
+    "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^3.29.0",
     "zustand": "^4.5.0"
   },
