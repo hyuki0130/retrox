@@ -1,19 +1,41 @@
 #!/bin/bash
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo -e "${GREEN}=== RetroX E2E Test Runner (iOS) ===${NC}"
 echo ""
 
-# Configuration
-# Use iPhone 15 Pro for CI compatibility (CI has Xcode 15.4 with iOS 17.5)
-SIMULATOR_NAME="${SIMULATOR_NAME:-iPhone 15 Pro}"
+detect_simulator() {
+    if [ -n "$SIMULATOR_NAME" ]; then
+        echo "$SIMULATOR_NAME"
+        return
+    fi
+    
+    if [ -n "$CI" ]; then
+        echo "iPhone 15 Pro"
+        return
+    fi
+    
+    if xcrun simctl list devices available | grep -q "iPhone 17 Pro"; then
+        echo "iPhone 17 Pro"
+    elif xcrun simctl list devices available | grep -q "iPhone 16 Pro"; then
+        echo "iPhone 16 Pro"
+    elif xcrun simctl list devices available | grep -q "iPhone 15 Pro"; then
+        echo "iPhone 15 Pro"
+    else
+        echo "iPhone 17 Pro"
+    fi
+}
+
+SIMULATOR_NAME=$(detect_simulator)
 CONFIGURATION="${CONFIGURATION:-ios.sim.release}"
+export DETOX_DEVICE_TYPE="$SIMULATOR_NAME"
+
+echo -e "Using simulator: ${GREEN}$SIMULATOR_NAME${NC}"
 
 # Step 1: Check if running from mobile directory
 if [ ! -f "package.json" ]; then

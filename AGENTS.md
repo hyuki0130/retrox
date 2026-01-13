@@ -2,6 +2,10 @@
 
 > 90년대 오락실 게임을 React Native로 재현하는 모바일 앱 + NestJS 백엔드
 
+**Domain-Specific Guidelines:**
+- [mobile/AGENTS.md](./mobile/AGENTS.md) - React Native, Detox E2E, Game Development
+- [backend/AGENTS.md](./backend/AGENTS.md) - NestJS, API Testing, Database
+
 ## Project Structure
 
 ```
@@ -26,106 +30,34 @@ retrox/
 └── package.json           # Root workspace config
 ```
 
-## Build & Run Commands
+## Local-First Testing Workflow (MANDATORY)
 
-### Mobile (React Native)
+**모든 테스트는 로컬에서 먼저 실행하고 통과한 후에 푸시합니다.**
 
-```bash
-cd mobile
+CI는 검증 단계이지, 테스트 환경이 아닙니다.
 
-# Install dependencies
-npm install
-
-# iOS
-npm run ios                          # Run on iOS simulator
-npm run ios -- --device              # Run on physical device
-cd ios && pod install && cd ..       # Install CocoaPods
-
-# Android
-npm run android                      # Run on Android emulator
-
-# Metro bundler
-npm start                            # Start Metro
-npm start -- --reset-cache           # Clear Metro cache
-
-# Build
-npm run build:ios                    # Production iOS build
-npm run build:android                # Production Android build
-```
-
-### Backend (NestJS)
+### Pre-Push Checklist
 
 ```bash
+# Backend
 cd backend
+npm run lint && npm run typecheck && npm test && npm run build
 
-# Development
-npm run start:dev                    # Watch mode
-npm run start:debug                  # Debug mode with inspector
-
-# Production
-npm run build                        # Compile TypeScript
-npm run start:prod                   # Run compiled code
-
-# Database
-npm run migration:generate           # Generate migration
-npm run migration:run                # Run migrations
-```
-
-## Testing Commands
-
-### Mobile Tests
-
-```bash
+# Mobile
 cd mobile
-
-# Run all tests
-npm test
-
-# Run single test file
-npm test -- path/to/file.test.ts
-
-# Run tests matching pattern
-npm test -- --testNamePattern="GameEngine"
-
-# Watch mode
-npm test -- --watch
-
-# Coverage
-npm test -- --coverage
+npm run lint && npm run typecheck && npm test
+./scripts/e2e-ci-ios.sh  # E2E tests (auto-detects local simulator)
 ```
 
-### Backend Tests
+| Step | Mobile | Backend |
+|------|--------|---------|
+| Lint | `npm run lint` | `npm run lint` |
+| Type Check | `npm run typecheck` | `npm run typecheck` |
+| Unit Tests | `npm test` | `npm test` |
+| E2E Tests | `./scripts/e2e-ci-ios.sh` | `npm run test:e2e` |
+| Build | `npm run build:ios` | `npm run build` |
 
-```bash
-cd backend
-
-# Unit tests (서비스/컨트롤러 개별 테스트)
-npm run test                         # All unit tests
-npm run test -- path/to/file.spec.ts # Single file
-npm run test -- --watch              # Watch mode
-
-# E2E tests (HTTP 엔드포인트 통합 테스트)
-npm run test:e2e                     # All e2e tests
-npm run test:e2e -- --grep "coins"   # Filter by name
-
-# Module tests (모듈 통합 테스트)
-npm run test -- --testPathPattern="module"
-
-# Coverage (80% 이상 필수)
-npm run test:cov                     # Unit + Module coverage
-npm run test:e2e:cov                 # E2E coverage (별도)
-
-# 전체 테스트 실행 (커밋 전 필수)
-npm run test:all                     # Unit + E2E + Coverage
-```
-
-### 테스트 유형별 목적
-
-| 테스트 유형 | 파일 패턴 | 목적 | 커버리지 목표 |
-|------------|----------|------|--------------|
-| Unit Test | `*.spec.ts` | 개별 클래스/함수 격리 테스트 | 80%+ |
-| Module Test | `*.module.spec.ts` | 모듈 내 의존성 통합 테스트 | 포함 |
-| E2E Test | `*.e2e-spec.ts` | HTTP 요청/응답 전체 플로우 | 별도 측정 |
+**All steps must pass locally before pushing.**
 
 ## Linting & Formatting
 
@@ -181,89 +113,6 @@ import type { GameProps } from './types';
 | NestJS Services | PascalCase + suffix | `CoinService` |
 | NestJS Controllers | PascalCase + suffix | `GameController` |
 
-### React Native Patterns
-
-```typescript
-// Components: FC with explicit props
-interface GameCardProps {
-  game: Game;
-  onPress: () => void;
-}
-
-export const GameCard: React.FC<GameCardProps> = ({ game, onPress }) => {
-  // ...
-};
-
-// Styles: StyleSheet at bottom of file
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-```
-
-### NestJS Patterns
-
-```typescript
-// Use decorators properly
-@Injectable()
-export class CoinService {
-  constructor(
-    private readonly userRepository: UserRepository,
-  ) {}
-
-  async addCoins(userId: string, amount: number): Promise<User> {
-    // Validate input
-    if (amount <= 0) {
-      throw new BadRequestException('Amount must be positive');
-    }
-    // ...
-  }
-}
-```
-
-### Error Handling
-
-```typescript
-// Mobile: Use Result pattern for game logic
-type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
-
-// Backend: Use NestJS exceptions
-throw new NotFoundException(`Game ${id} not found`);
-throw new BadRequestException('Insufficient coins');
-
-// NEVER: Empty catch blocks
-// BAD
-try { ... } catch (e) {}
-
-// GOOD
-try { ... } catch (error) {
-  logger.error('Operation failed', { error, context });
-  throw new InternalServerErrorException();
-}
-```
-
-### State Management (Zustand)
-
-```typescript
-// Store definition
-interface CoinStore {
-  coins: number;
-  addCoins: (amount: number) => void;
-  spendCoins: (amount: number) => boolean;
-}
-
-export const useCoinStore = create<CoinStore>((set, get) => ({
-  coins: 10000, // Initial coins
-  addCoins: (amount) => set((state) => ({ coins: state.coins + amount })),
-  spendCoins: (amount) => {
-    if (get().coins < amount) return false;
-    set((state) => ({ coins: state.coins - amount }));
-    return true;
-  },
-}));
-```
-
 ## Git Commit Convention
 
 ```
@@ -278,222 +127,47 @@ docs(readme): update setup instructions
 
 ## TDD Development Guidelines (MANDATORY)
 
-### TDD 원칙
+### TDD Cycle
 
-모든 기능 구현은 **Test-Driven Development** 방식을 따릅니다:
+1. **Red**: Write a failing test first
+2. **Green**: Write minimal code to pass the test
+3. **Refactor**: Improve code quality (tests must still pass)
 
-1. **Red**: 실패하는 테스트를 먼저 작성
-2. **Green**: 테스트를 통과하는 최소한의 코드 작성
-3. **Refactor**: 코드 품질 개선 (테스트는 계속 통과해야 함)
+### Blocking Rules
 
-### 테스트 작성 규칙
+| Forbidden | Reason |
+|-----------|--------|
+| Hardcoded test pass | Must test real logic |
+| `skip`, `only` abuse | All tests must run |
+| Commit without tests | Tests must pass before commit |
+| Excessive mocking | Must verify real behavior |
 
-#### 필수 테스트 커버리지
+### Test Failure Response
 
-| 항목 | 요구사항 |
-|------|----------|
-| Happy Path | 정상 동작 케이스 필수 |
-| Edge Cases | 경계값, 빈 값, null/undefined 등 |
-| Error Cases | 예외 상황, 에러 핸들링 |
-| Input Validation | 잘못된 입력값 처리 |
+1. **Analyze**: Check error message
+2. **Fix Code**: Modify implementation, not tests
+3. **Re-verify**: Run tests again
+4. **Repeat**: Until passing
 
-#### Edge Case 체크리스트
-
-- [ ] 빈 배열/객체
-- [ ] null/undefined 입력
-- [ ] 경계값 (0, 음수, 최대값)
-- [ ] 중복 데이터
-- [ ] 존재하지 않는 리소스
-- [ ] 권한 없는 접근
-- [ ] 동시성 이슈 (해당 시)
-
-### 금지 사항 (BLOCKING)
-
-| 금지 항목 | 이유 |
-|-----------|------|
-| 테스트 통과용 임시 코드 | 실제 로직이 아닌 하드코딩 금지 |
-| `skip`, `only` 남용 | 모든 테스트가 실행되어야 함 |
-| 테스트 없이 커밋 | 테스트 통과 후에만 커밋 |
-| Mock 과다 사용 | 실제 동작을 검증해야 함 |
-
-### 검증 프로세스 (커밋 전 필수)
-
-```bash
-# 1. 린트 검사
-npm run lint
-
-# 2. 타입 체크
-npm run typecheck  # 또는 npx tsc --noEmit
-
-# 3. 테스트 실행
-npm test
-
-# 4. 빌드 검증
-npm run build
-```
-
-**모든 단계가 통과해야만 커밋 가능합니다.**
-
-### 테스트 실패 시 대응
-
-1. **실패 원인 분석**: 에러 메시지 확인
-2. **코드 수정**: 테스트가 아닌 구현 코드 수정
-3. **재검증**: 테스트 재실행
-4. **반복**: 통과할 때까지 2-3 반복
-
-**절대 테스트를 수정해서 통과시키지 않습니다** (테스트 자체가 잘못된 경우 제외)
-
-### 테스트 구조 표준
-
-```typescript
-describe('ServiceName', () => {
-  // Setup
-  let service: ServiceName;
-  let mockDependency: jest.Mocked<Dependency>;
-
-  beforeEach(() => {
-    mockDependency = createMockDependency();
-    service = new ServiceName(mockDependency);
-  });
-
-  describe('methodName', () => {
-    // Happy path
-    describe('when valid input is provided', () => {
-      it('should return expected result', async () => {
-        const result = await service.methodName(validInput);
-        expect(result).toEqual(expectedOutput);
-      });
-    });
-
-    // Edge cases
-    describe('when edge case occurs', () => {
-      it('should handle empty input', async () => {
-        const result = await service.methodName([]);
-        expect(result).toEqual([]);
-      });
-
-      it('should handle boundary value', async () => {
-        const result = await service.methodName(0);
-        expect(result).toBe(0);
-      });
-    });
-
-    // Error cases
-    describe('when error condition exists', () => {
-      it('should throw NotFoundException for missing resource', async () => {
-        await expect(service.methodName('non-existent'))
-          .rejects.toThrow(NotFoundException);
-      });
-
-      it('should throw BadRequestException for invalid input', async () => {
-        await expect(service.methodName(-1))
-          .rejects.toThrow(BadRequestException);
-      });
-    });
-  });
-});
-```
-
-### CI/CD 연동
-
-모든 PR은 다음 검사를 통과해야 머지 가능:
-
-- [ ] `npm run lint` 통과
-- [ ] `npm run typecheck` 통과
-- [ ] `npm test` 통과 (커버리지 80% 이상)
-- [ ] `npm run build` 성공
+**NEVER modify tests to pass** (unless test itself is wrong)
 
 ## Task Management (Linear + Git Worktrees)
 
-### Linear API 사용 (curl)
-
-Linear는 **GraphQL API**를 curl로 직접 호출합니다. 환경변수 `LINEAR_TOKEN`이 설정되어 있어야 합니다.
+### Linear API (curl)
 
 ```bash
-# ~/.zshrc에 이미 설정되어 있음
-export LINEAR_TOKEN="lin_api_xxxxx"
+# Prerequisite: LINEAR_TOKEN must be set
+source ~/.zshrc  # if not loaded
 
-# 새 터미널 세션에서 토큰이 없으면 source 실행
-source ~/.zshrc
-```
-
-> **참고**: `LINEAR_TOKEN`은 `~/.zshrc`에 저장되어 있습니다. 환경변수가 로드되지 않은 경우 `source ~/.zshrc` 실행 후 사용하세요.
-
-**이슈 목록 조회 (미완료):**
-```bash
+# List incomplete issues
 curl -s -X POST https://api.linear.app/graphql \
   -H "Content-Type: application/json" \
   -H "Authorization: $LINEAR_TOKEN" \
   -d '{"query": "{ issues(filter: { state: { type: { nin: [\"completed\", \"canceled\"] } } }) { nodes { identifier title state { name } priority } } }"}' | jq '.data.issues.nodes'
 ```
 
-**이슈 생성:**
-```bash
-curl -s -X POST https://api.linear.app/graphql \
-  -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_TOKEN" \
-  -d '{
-    "query": "mutation CreateIssue($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { id identifier url } } }",
-    "variables": {
-      "input": {
-        "teamId": "33ddd07b-8942-47d7-a1b4-110c0cb80551",
-        "title": "[server-123] 이슈 제목",
-        "stateId": "c5a86554-75e5-48f3-9367-c99770372016",
-        "description": "## Goal\\n* 목표 설명"
-      }
-    }
-  }'
-```
+### Reference IDs
 
-**이슈 상태 업데이트 (Done 처리):**
-```bash
-curl -s -X POST https://api.linear.app/graphql \
-  -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_TOKEN" \
-  -d '{
-    "query": "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
-    "variables": {
-      "id": "이슈UUID",
-      "input": {
-        "stateId": "ea3e052d-9afa-4c66-98e6-6eb8099092d6"
-      }
-    }
-  }'
-```
-
-**이슈 설명 업데이트:**
-```bash
-curl -s -X POST https://api.linear.app/graphql \
-  -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_TOKEN" \
-  -d '{
-    "query": "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
-    "variables": {
-      "id": "이슈UUID",
-      "input": {
-        "description": "업데이트된 설명 내용"
-      }
-    }
-  }'
-```
-
-**이슈를 프로젝트에 연결:**
-```bash
-curl -s -X POST https://api.linear.app/graphql \
-  -H "Content-Type: application/json" \
-  -H "Authorization: $LINEAR_TOKEN" \
-  -d '{
-    "query": "mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }",
-    "variables": {
-      "id": "이슈UUID",
-      "input": {
-        "projectId": "f2594889-8f9b-4db5-b888-4e69866688cd"
-      }
-    }
-  }'
-```
-
-**참고 ID:**
 - Team ID (Hyuki0130): `33ddd07b-8942-47d7-a1b4-110c0cb80551`
 - Project ID (retrox): `f2594889-8f9b-4db5-b888-4e69866688cd`
 - Done State ID: `ea3e052d-9afa-4c66-98e6-6eb8099092d6`
@@ -501,650 +175,108 @@ curl -s -X POST https://api.linear.app/graphql \
 - Todo State ID: `c5a86554-75e5-48f3-9367-c99770372016`
 - Canceled State ID: `53d662ab-bc7d-478b-ab3b-9667ed3eaff3`
 
-### 기본 설정
+### Issue Naming
 
-- Linear 팀/프로젝트: 팀 `Hyuki0130`, 프로젝트 `retrox`에서 모든 작업을 관리합니다.
-- **새 이슈 생성 시 반드시 retrox 프로젝트에 연결합니다** (projectId 포함).
-- 이슈 ID 규칙: 모바일은 `app-123`, 서버는 `server-123` 형태로 발급합니다.
-- 이슈 제목은 `[app-123] ...`, `[server-123] ...` 형식으로 사용합니다.
-- 브랜치명은 이슈 ID와 동일하게 사용합니다.
-- Worktree 병렬 작업 가이드 (루트에 `worktree/` 디렉토리 사용):
-  - 최신 기준 갱신: `git fetch origin`
-  - 워크트리 추가: `git worktree add worktree/app-123 -b app-123 origin/main` (이슈 ID에 맞춰 경로/브랜치명 교체)
-  - 워크트리 제거: `git worktree remove worktree/app-123` (병합/정리 후)
-  - 브랜치 청소: `git branch -D app-123` (워크트리 제거 후 필요 시)
-  - 기본 규칙: 한 이슈 = 한 worktree/브랜치, 이름은 이슈 ID와 동일하게 유지합니다.
-- 업무 진행 원칙:
-  - 병렬 가능한 작업은 병렬로 진행
-  - 선행 작업이 필요한 경우 해당 작업 완료 후 진행
-  - Linear 이슈에서 작업을 가져와 상태/내용을 지속 업데이트
-  - 작업 완료 후 Git 커밋 → 푸시 → PR/머지 순서로 진행 (필요 시 리뷰 후 병합)
+- Mobile: `app-123`
+- Server: `server-123`
+- Issue title format: `[app-123] ...`, `[server-123] ...`
+- Branch name = Issue ID
 
-### 작업 루프 (MANDATORY)
+### Worktree Workflow
 
-모든 작업은 다음 루프를 따릅니다:
+```bash
+# Setup
+git fetch origin
+git worktree add worktree/{issue-id} -b {issue-id} origin/main
+
+# Work (TDD cycle)
+# ... implement, test, lint, typecheck, build ...
+
+# Commit & Push
+git add . && git commit && git push -u origin {issue-id}
+
+# Create PR
+gh pr create --title "[issue-id] Title" --body "## Summary..."
+
+# Merge (after review)
+gh pr merge --squash --delete-branch
+
+# Cleanup
+git checkout main && git pull origin main
+cd backend && npm test  # or mobile tests
+git worktree remove worktree/{issue-id}
+```
+
+### Work Loop (MANDATORY)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  1. Linear 이슈 생성/할당                                        │
 │     ↓                                                           │
 │  2. Worktree + Branch 생성 (이슈 ID 기반)                        │
-│     git worktree add worktree/{issue-id} -b {issue-id} origin/main │
 │     ↓                                                           │
-│  3. 작업 수행 (TDD 방식)                                         │
-│     - 테스트 작성 → 구현 → 리팩토링                              │
-│     - 커밋 전 검증: lint, typecheck, test, build                 │
+│  3. 작업 수행 (TDD 방식) + 로컬 테스트 통과 확인                   │
 │     ↓                                                           │
 │  4. 커밋 & 푸시                                                  │
-│     git add . && git commit && git push -u origin {issue-id}    │
 │     ↓                                                           │
-│  5. PR 생성 (gh CLI 사용)                                        │
-│     gh pr create --title "[issue-id] 제목" --body "설명"        │
+│  5. PR 생성 (gh CLI)                                            │
 │     ↓                                                           │
 │  6. PR 머지 (리뷰 후)                                            │
-│     gh pr merge --squash --delete-branch                        │
 │     ↓                                                           │
 │  7. main 통합 테스트 (BLOCKING)                                  │
-│     git checkout main && git pull origin main                   │
-│     cd backend && npm test                                      │
-│     cd mobile && npm test (해당 시)                              │
 │     ↓                                                           │
-│  8. Worktree 삭제                                                │
-│     git worktree remove worktree/{issue-id}                     │
-│     ↓                                                           │
-│  9. Linear 이슈 Done 처리                                        │
+│  8. Worktree 삭제 → Linear 이슈 Done                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### GitHub CLI (gh) 사용
+## Issue Tracking Guidelines
 
-PR 생성 및 관리에 `gh` CLI를 사용합니다.
-
-**PR 생성:**
-```bash
-gh pr create --title "[app-111] Mobile Unit Tests" --body "## Summary
-- coinStore 테스트 추가
-- settingsStore 테스트 추가
-- adService 테스트 추가
-
-## Test Results
-- 54 tests passed
-- Coverage: 100%"
-```
-
-**PR 머지 (squash):**
-```bash
-gh pr merge --squash --delete-branch
-```
-
-**PR 목록 조회:**
-```bash
-gh pr list
-```
-
-**PR 상태 확인:**
-```bash
-gh pr status
-```
-
-### 머지 후 통합 테스트 (BLOCKING)
-
-**main 브랜치에 머지 후 반드시 통합 테스트를 실행합니다.**
-
-```bash
-# main 브랜치에서 실행
-cd backend && npm install && npm run build && npm test
-cd ../mobile && npm install && npm test  # 모바일 테스트가 있는 경우
-```
-
-| 상황 | 조치 |
-|------|------|
-| 테스트 통과 | main 푸시 → 워크트리 삭제 → 이슈 Done |
-| 테스트 실패 | 실패 원인 분석 → 새 이슈 생성 → 새 워크트리에서 수정 |
-
-**테스트 실패 시 main에 직접 수정하지 않습니다.** 반드시 새 이슈/브랜치를 통해 수정합니다.
-
-### 워크트리 정리 규칙
-
-- 머지 완료된 워크트리는 **즉시 삭제**합니다.
-- 브랜치 히스토리는 원격에 보존되므로 로컬 삭제해도 무방합니다.
-- 장기 미사용 워크트리 (7일+)는 정리 대상입니다.
-
-## Issue Tracking Guidelines (MANDATORY)
-
-### 이슈 업데이트 원칙
-
-모든 작업은 Linear 이슈에 **상세하게 기록**해야 합니다. 진행 상황뿐만 아니라 **실제 구현 내용**도 반드시 포함합니다.
-
-### 이슈 유형별 필수 기록 사항
-
-#### 1. 모듈/기능 추가 (feat)
-
-| 항목 | 필수 | 설명 |
-|------|------|------|
-| Architecture Diagram | **YES** | 모듈 간 관계도 (Mermaid/ASCII) |
-| Files Created/Modified | **YES** | 생성/수정된 파일 목록 |
-| API Endpoints | **YES** | 새로 추가된 엔드포인트 |
-| Data Models | **YES** | DB 스키마, DTO 변경 사항 |
-| Dependencies Added | **YES** | 새로 추가된 패키지 |
-| Key Code Diff | **YES** | 핵심 로직 코드 스니펫 |
-
-#### 2. 버그 수정 (fix)
-
-| 항목 | 필수 | 설명 |
-|------|------|------|
-| Root Cause | **YES** | 버그 발생 원인 분석 |
-| Symptoms | **YES** | 사용자가 경험한 증상 |
-| Solution | **YES** | 해결 방법 설명 |
-| Before/After Diff | **YES** | 수정 전후 코드 비교 |
-| Regression Risk | **YES** | 다른 기능 영향도 |
-| Test Cases Added | **YES** | 재발 방지 테스트 |
-
-#### 3. 리팩토링 (refactor)
-
-| 항목 | 필수 | 설명 |
-|------|------|------|
-| Motivation | **YES** | 리팩토링 이유 |
-| Changes Summary | **YES** | 변경 사항 요약 |
-| Performance Impact | Optional | 성능 변화 측정 결과 |
-| Breaking Changes | **YES** | API 호환성 변경 여부 |
-
-#### 4. 테스트 추가/개선 (test)
-
-| 항목 | 필수 | 설명 |
-|------|------|------|
-| Test Strategy | **YES** | 테스트 전략 및 접근 방식 |
-| Test Files Created | **YES** | 생성된 테스트 파일 목록 |
-| Test Cases Summary | **YES** | 테스트 케이스 유형별 개수 |
-| Coverage Before/After | **YES** | 커버리지 변화 (XX% → XX%) |
-| Infrastructure Changes | Optional | 테스트 설정/의존성 변경 |
-| Uncovered Areas | Optional | 여전히 미커버된 영역 및 이유 |
-
-### 이슈 설명(Description) 업데이트 형식
-
-작업 완료 시 이슈 Description에 다음 섹션을 추가합니다:
+### Issue Description Update Format
 
 ```markdown
 ---
 
 ## Completed Work
 
-### Architecture (모듈 추가 시 필수)
-
-\`\`\`mermaid
-graph TD
-    A[Controller] --> B[Service]
-    B --> C[Repository]
-    B --> D[External API]
-\`\`\`
-
-또는 ASCII:
-\`\`\`
-┌─────────────┐     ┌─────────────┐
-│  Controller │────▶│   Service   │
-└─────────────┘     └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │  Prisma DB  │
-                    └─────────────┘
-\`\`\`
-
 ### Files Created/Modified
-- `path/to/file.ts`: 설명
-- `path/to/another.ts`: 설명
+- `path/to/file.ts`: Description
 
 ### Implementation Details
-- 주요 구현 내용 1
-- 주요 구현 내용 2
-
-### Technical Decisions
-- 선택한 기술/패턴과 그 이유
-
-### API Endpoints (서버 작업 시)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/coins/add | 코인 지급 |
-
-### Key Code Changes (주요 Diff)
-
-\`\`\`diff
-// Before
-- const result = await this.repository.find();
-+ // After - 페이지네이션 추가
-+ const result = await this.repository.find({
-+   take: limit,
-+   skip: offset,
-+ });
-\`\`\`
-
-### Bug Fix Details (버그 수정 시 필수)
-
-**Root Cause:**
-> 코인 잔액 계산 시 null 체크 누락으로 NaN 반환
-
-**Symptoms:**
-- 신규 사용자 코인 조회 시 NaN 표시
-- 광고 시청 후 코인 증가 안됨
-
-**Solution:**
-- `getBalance()` 메서드에 null coalescing 추가
-- 초기값 0으로 폴백 처리
-
-**Before/After:**
-\`\`\`diff
-- return result._sum.amount;
-+ return result._sum.amount ?? 0;
-\`\`\`
-
-**Regression Risk:** 낮음 - 기존 사용자 동작에 영향 없음
-
-### Dependencies Added (패키지 추가 시)
-- `package-name`: 용도 설명
+- Key implementation 1
+- Key implementation 2
 
 ### Test Coverage
-- Unit Tests: X개 추가
-- E2E Tests: X개 추가
+- Unit Tests: X added
+- E2E Tests: X added
 - Coverage: XX% → XX%
 
-### Commit & PR (필수)
+### Commit & PR (Required)
 - Branch: `branch-name`
-- Commit: `commit-hash` - commit message
-- **PR: [#N](https://github.com/hyuki0130/retrox/pull/N)** ← 필수!
+- Commit: `hash` - message
+- **PR: [#N](https://github.com/hyuki0130/retrox/pull/N)**
 ```
 
-> **중요**: PR 생성 후 반드시 PR 링크를 이슈 Description에 포함해야 합니다.
-
-### 댓글(Comment) 활용
-
-- **진행 중 이슈**: 막힌 부분, 결정 필요 사항, 질문 등을 댓글로 기록
-- **코드 리뷰 피드백**: PR 관련 논의는 댓글로 추적
-- **버그/이슈 발견**: 작업 중 발견한 문제점 기록
-
-### 상태 업데이트 타이밍
-
-| 시점 | 액션 |
-|------|------|
-| 작업 시작 | 상태를 `In Progress`로 변경 |
-| 구현 완료 | Description에 Completed Work 섹션 추가 |
-| 커밋/푸시 완료 | 커밋 정보 추가 |
-| PR 생성 | PR 링크 댓글로 추가 |
-| 머지 완료 | 상태를 `Done`으로 변경 |
-
-### 예시: 완료된 기능 추가 이슈
-
-```markdown
-## Goal
-* AdMob 연동 및 코인 지급 루프 완성
-
-## Scope
-* AdMob SDK 초기화
-* Rewarded/Interstitial 광고 플로우
-
-## Acceptance
-* 광고 정상 노출
-* 완료 시 코인 증가
-
----
-
-## Completed Work
-
-### Architecture
-
-\`\`\`
-┌─────────────────┐     ┌─────────────────┐
-│   GameScreen    │────▶│   AdService     │
-└─────────────────┘     └────────┬────────┘
-                                 │
-┌─────────────────┐     ┌────────▼────────┐
-│   CoinStore     │◀────│  AdMob SDK      │
-└─────────────────┘     └─────────────────┘
-\`\`\`
-
-### Files Created/Modified
-- `mobile/src/services/adService.ts`: AdMob 서비스 구현
-- `mobile/src/store/coinStore.ts`: Zustand 코인 스토어
-- `mobile/package.json`: react-native-google-mobile-ads 추가
-
-### Implementation Details
-- `AdMobService` 클래스: Rewarded/Interstitial 광고 로드/표시
-- `useCoinStore`: Zustand + AsyncStorage 영속성
-- 테스트 광고 ID 자동 적용 (__DEV__ 모드)
-
-### Key Code Changes
-
-\`\`\`typescript
-// AdService - 보상형 광고 완료 핸들러
-rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-  useCoinStore.getState().addCoins(AD_REWARD_AMOUNT);
-});
-\`\`\`
-
-### Dependencies Added
-- `react-native-google-mobile-ads`: AdMob SDK
-- `zustand`: 상태 관리
-- `@react-native-async-storage/async-storage`: 영속성
-
-### Test Coverage
-- Unit Tests: 8개 추가
-- E2E Tests: 2개 추가
-- Coverage: 65% → 78%
-
-### Commit
-- Branch: `app-102`
-- Commit: `abc1234` - feat(ads): implement AdMob integration with coin rewards
-```
-
-### 예시: 완료된 버그 수정 이슈
-
-```markdown
-## Goal
-* 신규 사용자 코인 조회 시 NaN 표시 버그 수정
-
-## Symptoms
-* 회원가입 직후 홈 화면에서 코인이 "NaN"으로 표시
-* 광고 시청해도 코인이 증가하지 않음
-
----
-
-## Completed Work
-
-### Bug Fix Details
-
-**Root Cause:**
-> `CoinService.getBalance()`에서 거래 내역이 없는 신규 사용자의 경우
-> Prisma aggregate가 `{ _sum: { amount: null } }`을 반환.
-> null 체크 없이 바로 반환하여 NaN 발생.
-
-**Symptoms:**
-- 신규 사용자 코인 조회 시 NaN 표시
-- 광고 시청 후 코인 증가 안됨 (NaN + 500 = NaN)
-
-**Solution:**
-- null coalescing operator (`??`) 추가하여 기본값 0 반환
-- 관련 테스트 케이스 3개 추가
-
-**Before/After:**
-\`\`\`diff
-async getBalance(userId: string): Promise<number> {
-  const result = await this.prisma.coinLedger.aggregate({
-    where: { userId },
-    _sum: { amount: true },
-  });
-- return result._sum.amount;
-+ return result._sum.amount ?? 0;
-}
-\`\`\`
-
-**Regression Risk:** 낮음
-- 기존 사용자: 기존과 동일하게 합계 반환
-- 신규 사용자: 0 반환 (이전: NaN)
-
-### Files Modified
-- `backend/src/modules/coin/coin.service.ts`: null 체크 추가
-
-### Test Cases Added
-- `should return 0 when no transactions exist`
-- `should return 0 when sum is null`
-- `should handle new user with no ledger entries`
-
-### Test Coverage
-- Unit Tests: 3개 추가
-- Coverage: 72% → 75%
-
-### Commit
-- Branch: `server-105`
-- Commit: `def5678` - fix(coin): handle null balance for new users
-```
-
-## Documentation Guidelines (MANDATORY)
-
-### README 현행화 규칙
-
-**backend/** 또는 **mobile/** 디렉토리에 변경이 발생하면, 해당 README.md를 최신 내용으로 업데이트해야 합니다.
-
-#### 업데이트가 필요한 경우
-
-| 변경 유형 | 업데이트 필요 항목 |
-|----------|-------------------|
-| 새 모듈/기능 추가 | Architecture 다이어그램, Project Structure |
-| API 엔드포인트 추가/변경 | API Endpoints 테이블 |
-| 테스트 추가 | Testing 섹션, Coverage 수치 |
-| 의존성 추가 | Dependencies, Tech Stack |
-| 스크립트 추가 | Scripts Reference |
-| 환경변수 추가 | Environment Setup |
-| 배포 설정 변경 | Deployment 섹션 |
-
-#### README 파일 위치
-
-- `backend/README.md`: 백엔드 아키텍처, API, 테스트, 배포
-- `mobile/README.md`: 모바일 앱 아키텍처, 게임, 상태관리, 테스트
-
-#### 체크리스트 (커밋 전)
-
-- [ ] 새 모듈이 Architecture 다이어그램에 반영되었는가?
-- [ ] 새 API가 Endpoints 테이블에 추가되었는가?
-- [ ] 테스트 커버리지 수치가 최신인가?
-- [ ] 새 의존성이 Dependencies에 기록되었는가?
-
-### Linear 이슈 PR 링크 규칙
-
-**모든 이슈의 Completed Work 섹션에 PR 링크를 반드시 포함합니다.**
-
-```markdown
-### Commit & PR
-- Branch: `server-111`
-- Commit: `abc1234` - feat(api): add new endpoint
-- **PR: [#1](https://github.com/hyuki0130/retrox/pull/1)**
-```
-
-PR 링크가 없는 이슈는 불완전한 문서로 간주합니다.
-
-## Infrastructure Notes
-
-- **Backend Hosting**: Railway, Render, or Fly.io (free tier)
-- **Database**: Supabase PostgreSQL (free tier) or PlanetScale
-- **File Storage**: Cloudflare R2 (free egress)
-- **Ads**: Google AdMob (Rewarded + Interstitial)
-
-## Game Development Guidelines
-
-- Use React Native Skia for 2D rendering
-- Target 60fps on mid-range devices
-- Keep game assets under 50MB total
-- Implement game loop with `requestAnimationFrame`
-- Sound: use `expo-av` or `react-native-sound`
-
-## Mobile E2E Testing Guidelines (MANDATORY)
-
-### Detox E2E 테스트 프레임워크
-
-모바일 앱의 모든 기능 추가/변경 시 **Detox E2E 테스트**가 필수입니다.
-
-### E2E 테스트 Commands
-
-```bash
-cd mobile
-
-# E2E 빌드
-npm run e2e:build:ios              # iOS 디버그 빌드
-npm run e2e:build:ios:release      # iOS 릴리즈 빌드
-npm run e2e:build:android          # Android 빌드
-
-# E2E 테스트 실행
-npm run e2e:test:ios               # iOS 테스트
-npm run e2e:test:ios:release       # iOS 릴리즈 테스트
-npm run e2e:test:android           # Android 테스트
-```
-
-### 테스트 파일 구조
-
-```
-mobile/e2e/
-├── jest.config.js
-├── flows/
-│   ├── app.test.ts           # 앱 실행/네비게이션
-│   ├── shooter.test.ts       # 슈터 게임 플레이
-│   ├── puzzle.test.ts        # 퍼즐 게임 플레이
-│   ├── ads.test.ts           # 광고 시스템
-│   └── [feature].test.ts     # 새 기능별 테스트
-└── helpers/
-    └── testHelpers.ts
-```
-
-### 기능별 E2E 테스트 요구사항 (MANDATORY)
-
-모바일 기능 추가 시 **반드시 해당 기능의 E2E 테스트를 함께 작성**해야 합니다.
-
-| 기능 유형 | 필수 테스트 항목 |
-|----------|-----------------|
-| 새 게임 추가 | 게임 진입, 플레이 동작, 게임오버, 일시정지/재개 |
-| 새 화면 추가 | 화면 진입, UI 요소 표시, 네비게이션 |
-| 광고 기능 변경 | 광고 로드, 완료 콜백, 실패 처리 |
-| 코인 시스템 변경 | 코인 표시, 증가/감소, 잔액 부족 처리 |
-| 설정 기능 추가 | 토글 동작, 설정 저장/복원 |
-
-### testID 규칙
-
-Detox가 UI 요소를 인식하려면 `testID` prop이 필수입니다.
-
-```typescript
-// 네이밍 규칙: {화면/기능}-{요소}-{상태?}
-<TouchableOpacity testID="shooter-move-left" />
-<Text testID="coin-balance" />
-<View testID="puzzle-cell-0-0" />
-<TouchableOpacity testID="watch-ad-button" />
-```
-
-| 컴포넌트 유형 | testID 패턴 | 예시 |
-|--------------|-------------|------|
-| 버튼 | `{feature}-{action}` | `shooter-fire`, `watch-ad-button` |
-| 텍스트 | `{feature}-{data}` | `coin-balance`, `shooter-score` |
-| 그리드 셀 | `{feature}-cell-{row}-{col}` | `puzzle-cell-0-0` |
-| 상태 뷰 | `{feature}-{state}` | `shooter-gameover`, `ad-loading` |
-
-### E2E 테스트 작성 표준
-
-```typescript
-import { device, element, by, expect, waitFor } from 'detox';
-
-describe('Feature Name', () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
-  });
-
-  beforeEach(async () => {
-    await device.reloadReactNative();
-  });
-
-  describe('Happy Path', () => {
-    it('should do expected behavior', async () => {
-      await element(by.id('feature-button')).tap();
-      await expect(element(by.id('feature-result'))).toBeVisible();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle failure gracefully', async () => {
-      await device.setURLBlacklist(['.*api.*']);
-      await element(by.id('feature-button')).tap();
-      await expect(element(by.id('error-message'))).toBeVisible();
-      await device.setURLBlacklist([]);
-    });
-  });
-});
-```
-
-### 금지 사항 (BLOCKING - E2E 테스트)
-
-| 금지 항목 | 이유 |
-|-----------|------|
-| **테스트 통과용 임시 코드** | 실제 기능이 아닌 하드코딩으로 테스트 통과 금지 |
-| **`.skip()` 또는 `.only()` 커밋** | 모든 테스트가 실행되어야 함 |
-| **무관한 테스트 추가** | 업무/이슈와 직접 관련된 테스트만 추가 |
-| **testID 없이 기능 구현** | Detox 테스트 불가능 |
-| **E2E 테스트 없이 PR 생성** | 기능 추가 시 테스트 필수 |
-| **테스트 삭제로 CI 통과** | 실패하는 테스트는 코드를 수정해서 해결 |
-
-### 테스트-업무 매칭 규칙 (MANDATORY)
-
-**E2E 테스트는 해당 Linear 이슈/업무와 직접 관련된 기능만 테스트해야 합니다.**
-
-```
-✅ 올바른 예시:
-- 이슈: "슈터 게임 파워업 아이템 추가"
-- 테스트: shooter-powerup.test.ts (파워업 획득, 효과 적용, 지속시간)
-
-❌ 잘못된 예시:
-- 이슈: "슈터 게임 파워업 아이템 추가"  
-- 테스트: 퍼즐 게임 관련 테스트 추가 (무관한 테스트)
-```
-
-### CI/CD E2E 테스트 통합
-
-모든 모바일 PR은 다음 E2E 검사를 **통과해야만 머지 가능**합니다:
-
-```yaml
-# .github/workflows/e2e-ios.yml
-jobs:
-  e2e-ios:
-    runs-on: macos-14
-    steps:
-      - name: Run E2E Tests
-        run: |
-          cd mobile
-          npm run e2e:build:ios:release
-          npm run e2e:test:ios:release
-```
-
-### PR 머지 조건 (Mobile)
-
-모바일 관련 PR은 다음 **모든 조건**을 충족해야 머지됩니다:
-
-| 조건 | 확인 방법 |
-|------|----------|
-| Unit 테스트 통과 | `npm test` |
-| E2E 테스트 통과 | `npm run e2e:test:ios` |
-| 린트 통과 | `npm run lint` |
-| 타입체크 통과 | `npm run typecheck` |
-| 빌드 성공 | `npm run build:ios` |
-
-**E2E 테스트 실패 시 절대 머지하지 않습니다.**
-
-### 테스트 실패 대응
-
-1. **실패 원인 분석**: Detox 에러 로그 확인
-2. **구현 코드 수정**: 테스트가 아닌 앱 코드 수정
-3. **재실행**: `npm run e2e:test:ios`
-4. **반복**: 통과할 때까지 2-3 반복
-
-**절대 테스트를 수정/삭제해서 CI를 통과시키지 않습니다.**
-
-### 예외 상황
-
-| 상황 | 허용 조치 |
-|------|----------|
-| 테스트 자체 버그 | 테스트 수정 가능 (PR 설명에 명시) |
-| 환경 의존 flaky 테스트 | `retry` 추가 또는 `waitFor` timeout 조정 |
-| 외부 서비스 의존 | `device.setURLBlacklist()` 또는 mock 사용 |
-
-### 광고 테스트 특이사항
-
-AdMob 광고는 네이티브 오버레이이므로 특별한 처리가 필요합니다:
-
-```typescript
-// 테스트 광고 닫기 (좌표 기반)
-await device.tap({ x: 30, y: 60 });
-
-// 광고 네트워크 차단 (실패 시나리오)
-await device.setURLBlacklist(['.*googlesyndication.*', '.*doubleclick.*']);
-
-// 광고 로드 대기
-await new Promise(resolve => setTimeout(resolve, 6000));
-```
-
-### 참고 문서
-
-- [Detox Official Docs](https://wix.github.io/Detox/)
-- [Detox Actions API](https://wix.github.io/Detox/docs/api/actions)
-- [Detox Matchers API](https://wix.github.io/Detox/docs/api/matchers)
-- Linear Issue: HYU-47 (Detox E2E 테스트 자동화 구축)
+### Status Update Timing
+
+| Timing | Action |
+|--------|--------|
+| Start work | Set status to `In Progress` |
+| Implementation done | Add Completed Work section |
+| Commit/push done | Add commit info |
+| PR created | Add PR link |
+| Merge done | Set status to `Done` |
+
+## Documentation Guidelines
+
+**README updates required when:**
+
+| Change Type | Update Needed |
+|-------------|---------------|
+| New module/feature | Architecture diagram, Project Structure |
+| API endpoint changes | API Endpoints table |
+| Test additions | Testing section, Coverage numbers |
+| Dependency additions | Dependencies, Tech Stack |
+
+**README locations:**
+- `backend/README.md`: Backend architecture, API, tests, deployment
+- `mobile/README.md`: Mobile app architecture, games, state management, tests

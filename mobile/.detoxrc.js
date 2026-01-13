@@ -1,3 +1,19 @@
+// Detect available simulator based on environment
+// CI (Xcode 15.4) uses iPhone 15 Pro
+// Local (Xcode 26+) uses iPhone 17 Pro
+const getDefaultSimulator = () => {
+  // Allow override via environment variable
+  if (process.env.DETOX_DEVICE_TYPE) {
+    return process.env.DETOX_DEVICE_TYPE;
+  }
+  // Check if running in CI
+  if (process.env.CI) {
+    return 'iPhone 15 Pro';
+  }
+  // Local development - use iPhone 17 Pro (Xcode 26+)
+  return 'iPhone 17 Pro';
+};
+
 /** @type {Detox.DetoxConfig} */
 module.exports = {
   testRunner: {
@@ -35,7 +51,7 @@ module.exports = {
   devices: {
     simulator: {
       type: 'ios.simulator',
-      device: { type: 'iPhone 15 Pro' },
+      device: { type: getDefaultSimulator() },
     },
     attached: {
       type: 'android.attached',
