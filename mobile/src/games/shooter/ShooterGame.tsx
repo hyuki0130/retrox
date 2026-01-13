@@ -145,10 +145,10 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.score}>SCORE: {score}</Text>
+    <View style={styles.container} testID="shooter-container">
+      <Text style={styles.score} testID="shooter-score">SCORE: {score}</Text>
 
-      <Canvas style={styles.canvas}>
+      <Canvas style={styles.canvas} testID="shooter-canvas">
         <Rect x={playerX - PLAYER_SIZE / 2} y={height - 100} width={PLAYER_SIZE} height={PLAYER_SIZE} color="#00ff9d" />
 
         {bullets.map((b) => (
@@ -161,23 +161,23 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       </Canvas>
 
       {gameState === 'gameover' && (
-        <View style={styles.overlay}>
+        <View style={styles.overlay} testID="shooter-gameover">
           <Text style={styles.gameOverText}>GAME OVER</Text>
-          <Text style={styles.finalScore}>Score: {score}</Text>
-          <TouchableOpacity style={styles.restartBtn} onPress={restart}>
+          <Text style={styles.finalScore} testID="shooter-final-score">Score: {score}</Text>
+          <TouchableOpacity style={styles.restartBtn} onPress={restart} testID="shooter-restart">
             <Text style={styles.restartText}>RESTART</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => movePlayer('left')}>
+      <View style={styles.controls} testID="shooter-controls">
+        <TouchableOpacity style={styles.controlBtn} onPress={() => movePlayer('left')} testID="shooter-move-left">
           <Text style={styles.controlText}>◀</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.controlBtn} onPress={fireBullet}>
+        <TouchableOpacity style={styles.controlBtn} onPress={fireBullet} testID="shooter-fire">
           <Text style={styles.controlText}>FIRE</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => movePlayer('right')}>
+        <TouchableOpacity style={styles.controlBtn} onPress={() => movePlayer('right')} testID="shooter-move-right">
           <Text style={styles.controlText}>▶</Text>
         </TouchableOpacity>
       </View>
