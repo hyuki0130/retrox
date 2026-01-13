@@ -9,7 +9,7 @@ export const HomeScreen: React.FC = () => {
   const colors = getThemeColors();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <SafeAreaView testID="home-screen" style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <CoinHUD />
       <ScrollView 
         style={styles.scrollView}
@@ -17,14 +17,14 @@ export const HomeScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.primary }]}>RETROX</Text>
+          <Text testID="home-title" style={[styles.title, { color: colors.primary }]}>RETROX</Text>
           <Text style={[styles.subtitle, { color: colors.text }]}>90s Arcade Games</Text>
         </View>
         
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>FEATURED</Text>
+        <Text testID="home-featured" style={[styles.sectionTitle, { color: colors.text }]}>FEATURED</Text>
         <FeaturedCarousel />
         
-        <GameGrid />
+        <GameGrid testID="home-game-grid" />
       </ScrollView>
     </SafeAreaView>
   );

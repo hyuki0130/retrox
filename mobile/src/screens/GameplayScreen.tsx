@@ -88,15 +88,15 @@ export const GameplayScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View testID="gameplay-screen" style={[styles.container, { backgroundColor: colors.background }]}>
       
       <View style={[styles.hud, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.pauseButton} onPress={handlePause}>
+        <TouchableOpacity testID="pause-button" style={styles.pauseButton} onPress={handlePause}>
           <Text style={styles.pauseIcon}>⏸️</Text>
         </TouchableOpacity>
         <View style={styles.scoreContainer}>
           <Text style={[styles.scoreLabel, { color: colors.text }]}>SCORE</Text>
-          <Text style={[styles.scoreValue, { color: colors.primary }]}>
+          <Text testID="gameplay-score" style={[styles.scoreValue, { color: colors.primary }]}>
             {score.toLocaleString()}
           </Text>
         </View>
@@ -107,16 +107,18 @@ export const GameplayScreen: React.FC = () => {
       </View>
 
       {isPaused && (
-        <View style={styles.pauseOverlay}>
+        <View testID="pause-modal" style={styles.pauseOverlay}>
           <View style={[styles.pauseModal, { backgroundColor: '#1a1a1a' }]}>
             <Text style={[styles.pauseTitle, { color: colors.primary }]}>PAUSED</Text>
             <TouchableOpacity 
+              testID="resume-button"
               style={[styles.modalButton, { backgroundColor: colors.primary }]}
               onPress={handleResume}
             >
               <Text style={styles.modalButtonText}>Resume</Text>
             </TouchableOpacity>
             <TouchableOpacity 
+              testID="quit-button"
               style={[styles.modalButton, styles.quitButton]}
               onPress={handleQuit}
             >

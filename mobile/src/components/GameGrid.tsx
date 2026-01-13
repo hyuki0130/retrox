@@ -56,12 +56,16 @@ const GAMES: Game[] = [
   },
 ];
 
-export const GameGrid: React.FC = () => {
+interface GameGridProps {
+  testID?: string;
+}
+
+export const GameGrid: React.FC<GameGridProps> = ({ testID }) => {
   const getThemeColors = useSettingsStore((s) => s.getThemeColors);
   const colors = getThemeColors();
 
   return (
-    <View style={styles.container}>
+    <View testID={testID} style={styles.container}>
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
         ALL GAMES
       </Text>
