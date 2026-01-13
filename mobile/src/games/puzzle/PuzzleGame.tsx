@@ -149,13 +149,13 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="puzzle-container">
       <View style={styles.header}>
-        <Text style={styles.score}>SCORE: {score}</Text>
-        <Text style={styles.moves}>MOVES: {moves}</Text>
+        <Text style={styles.score} testID="puzzle-score">SCORE: {score}</Text>
+        <Text style={styles.moves} testID="puzzle-moves">MOVES: {moves}</Text>
       </View>
 
-      <Canvas style={[styles.canvas, { height: CELL_SIZE * GRID_SIZE + 20 }]}>
+      <Canvas style={[styles.canvas, { height: CELL_SIZE * GRID_SIZE + 20 }]} testID="puzzle-canvas">
         {grid.map((row, rowIdx) =>
           row.map((cell, colIdx) => {
             if (cell === null) return null;
@@ -177,23 +177,24 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         )}
       </Canvas>
 
-      <View style={styles.touchGrid}>
+      <View style={styles.touchGrid} testID="puzzle-grid">
         {grid.map((row, rowIdx) =>
           row.map((_, colIdx) => (
             <TouchableOpacity
               key={`touch-${rowIdx}-${colIdx}`}
               style={[styles.touchCell, { width: CELL_SIZE, height: CELL_SIZE }]}
               onPress={() => handleCellPress(rowIdx, colIdx)}
+              testID={`puzzle-cell-${rowIdx}-${colIdx}`}
             />
           ))
         )}
       </View>
 
       {moves <= 0 && (
-        <View style={styles.overlay}>
+        <View style={styles.overlay} testID="puzzle-gameover">
           <Text style={styles.gameOverText}>TIME UP!</Text>
-          <Text style={styles.finalScore}>Final Score: {score}</Text>
-          <TouchableOpacity style={styles.restartBtn} onPress={restart}>
+          <Text style={styles.finalScore} testID="puzzle-final-score">Final Score: {score}</Text>
+          <TouchableOpacity style={styles.restartBtn} onPress={restart} testID="puzzle-restart">
             <Text style={styles.restartText}>PLAY AGAIN</Text>
           </TouchableOpacity>
         </View>
