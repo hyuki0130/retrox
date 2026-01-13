@@ -15,13 +15,14 @@ export const CoinHUD: React.FC<CoinHUDProps> = ({ onPress }) => {
 
   return (
     <TouchableOpacity 
+      testID="coin-hud"
       style={[styles.container, { top: insets.top + 8 }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={[styles.coinBox, { backgroundColor: colors.background }]}>
         <Text style={styles.coinIcon}>💰</Text>
-        <Text style={[styles.coinAmount, { color: colors.primary }]}>
+        <Text testID="coin-balance" style={[styles.coinAmount, { color: colors.primary }]}>
           {coins.toLocaleString()}
         </Text>
       </View>
