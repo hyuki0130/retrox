@@ -3,6 +3,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|react-native-google-mobile-ads|zustand|@react-native-async-storage)/)',
   ],
