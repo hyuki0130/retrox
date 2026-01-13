@@ -11,7 +11,7 @@ echo -e "${GREEN}=== RetroX E2E Test Runner (iOS) ===${NC}"
 echo ""
 
 # Configuration
-SIMULATOR_NAME="${SIMULATOR_NAME:-iPhone 15}"
+SIMULATOR_NAME="${SIMULATOR_NAME:-iPhone 17 Pro}"
 CONFIGURATION="${CONFIGURATION:-ios.sim.release}"
 
 # Step 1: Check if running from mobile directory
