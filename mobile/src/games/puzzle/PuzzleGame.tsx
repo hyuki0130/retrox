@@ -151,8 +151,8 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   return (
     <View style={styles.container} testID="puzzle-container">
       <View style={styles.header}>
-        <Text style={styles.score} testID="puzzle-score">SCORE: {score}</Text>
-        <Text style={styles.moves} testID="puzzle-moves">MOVES: {moves}</Text>
+        <Text style={styles.score}>SCORE: <Text testID="puzzle-score">{score}</Text></Text>
+        <Text style={styles.moves}>MOVES: <Text testID="puzzle-moves">{moves}</Text></Text>
       </View>
 
       <Canvas style={[styles.canvas, { height: CELL_SIZE * GRID_SIZE + 20 }]} testID="puzzle-canvas">

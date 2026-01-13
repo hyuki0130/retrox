@@ -146,7 +146,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
   return (
     <View style={styles.container} testID="shooter-container">
-      <Text style={styles.score} testID="shooter-score">SCORE: {score}</Text>
+      <Text style={styles.score}>SCORE: <Text testID="shooter-score">{score}</Text></Text>
 
       <Canvas style={styles.canvas} testID="shooter-canvas">
         <Rect x={playerX - PLAYER_SIZE / 2} y={height - 100} width={PLAYER_SIZE} height={PLAYER_SIZE} color="#00ff9d" />
