@@ -31,14 +31,18 @@ jobs:
         working-directory: mobile
         run: npm ci
 
+      - name: Clean iOS build cache
+        working-directory: mobile
+        run: rm -rf ios/build ios/Pods ios/Podfile.lock
+
       - name: Install CocoaPods
         working-directory: mobile/ios
         run: pod install
 
       - name: Boot iOS Simulator
         run: |
-          xcrun simctl boot "iPhone 15" || true
-          xcrun simctl bootstatus "iPhone 15" -b
+          xcrun simctl boot "iPhone 15 Pro" || true
+          xcrun simctl bootstatus "iPhone 15 Pro" -b
 
       - name: Build for Detox
         working-directory: mobile
