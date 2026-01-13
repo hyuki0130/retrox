@@ -27,6 +27,11 @@ jobs:
       - name: Install Detox CLI
         run: npm install -g detox-cli
 
+      - name: Install applesimutils
+        run: |
+          brew tap wix/brew
+          brew install applesimutils
+
       - name: Install dependencies
         working-directory: mobile
         run: npm ci
