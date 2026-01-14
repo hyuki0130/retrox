@@ -63,17 +63,18 @@ jobs:
       - name: Run E2E Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
-          arch: x86_64
-          profile: pixel_4
-          avd-name: Pixel_4_API_30
+          api-level: 31
+          target: google_apis
+          arch: arm64-v8a
+          profile: pixel_6
+          avd-name: Pixel_6_API_31
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           script: |
             adb devices
             adb reverse tcp:8081 tcp:8081
             cd mobile
-            export DETOX_AVD_NAME=Pixel_4_API_30
+            export DETOX_AVD_NAME=Pixel_6_API_31
             detox test --configuration android.emu.debug --cleanup --headless
 
       - name: Upload artifacts on failure
