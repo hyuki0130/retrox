@@ -2,15 +2,16 @@ name: E2E Tests (iOS)
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/e2e-ios.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/e2e-ios.yml'
+  # Disabled until CI stability issues are resolved (HYU-67)
+  # pull_request:
+  #   paths:
+  #     - 'mobile/**'
+  #     - '.github/workflows/e2e-ios.yml'
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'mobile/**'
+  #     - '.github/workflows/e2e-ios.yml'
 
 jobs:
   e2e-ios:

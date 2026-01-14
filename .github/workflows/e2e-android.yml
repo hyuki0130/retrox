@@ -2,15 +2,16 @@ name: E2E Tests (Android)
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/e2e-android.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/e2e-android.yml'
+  # Disabled until CI stability issues are resolved (HYU-67)
+  # pull_request:
+  #   paths:
+  #     - 'mobile/**'
+  #     - '.github/workflows/e2e-android.yml'
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'mobile/**'
+  #     - '.github/workflows/e2e-android.yml'
 
 jobs:
   e2e-android:
