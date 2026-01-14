@@ -5,7 +5,7 @@ describe('Puzzle Game', () => {
     await device.launchApp({ newInstance: true });
     await waitFor(element(by.id('home-screen')))
       .toBeVisible()
-      .withTimeout(10000);
+      .withTimeout(30000);
   });
 
   describe('Game Entry', () => {

@@ -49,6 +49,11 @@ module.exports = {
       binaryPath: 'ios/build/Build/Products/Release-iphonesimulator/RetroX.app',
       build: 'xcodebuild -workspace ios/RetroX.xcworkspace -scheme RetroX -configuration Release -sdk iphonesimulator -derivedDataPath ios/build',
     },
+    'ios.device.release': {
+      type: 'ios.app',
+      binaryPath: 'ios/build/Build/Products/Release-iphoneos/RetroX.app',
+      build: 'xcodebuild -workspace ios/RetroX.xcworkspace -scheme RetroX -configuration Release -sdk iphoneos -derivedDataPath ios/build CODE_SIGN_IDENTITY="Apple Development" CODE_SIGNING_ALLOWED=YES',
+    },
     'android.debug': {
       type: 'android.apk',
       binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',

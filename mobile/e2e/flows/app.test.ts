@@ -9,7 +9,7 @@ describe('App Navigation & Stability', () => {
     it('should launch without crash', async () => {
       await waitFor(element(by.id('home-screen')))
         .toBeVisible()
-        .withTimeout(10000);
+        .withTimeout(30000);
     });
 
     it('should show home screen title', async () => {
