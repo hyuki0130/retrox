@@ -15,7 +15,7 @@ on:
 jobs:
   e2e-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -58,20 +58,29 @@ jobs:
 
       - name: Build for Detox
         working-directory: mobile
-        run: detox build --configuration android.emu.release
+        run: detox build --configuration android.emu.debug
+
+      - name: Start Metro Bundler
+        working-directory: mobile
+        run: |
+          npm start &
+          sleep 10
 
       - name: Run E2E Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
           arch: x86_64
-          profile: Pixel 4
+          profile: pixel_4
           avd-name: Pixel_4_API_30
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           script: |
+            adb devices
+            adb reverse tcp:8081 tcp:8081
             cd mobile
-            detox test --configuration android.emu.release --cleanup --headless
+            export DETOX_AVD_NAME=Pixel_4_API_30
+            detox test --configuration android.emu.debug --cleanup --headless
 
       - name: Upload artifacts on failure
         if: failure()
