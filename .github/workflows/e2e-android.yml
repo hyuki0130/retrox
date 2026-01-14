@@ -14,7 +14,9 @@ on:
 
 jobs:
   e2e-android:
-    runs-on: ubuntu-latest
+    # Use ubuntu-22.04 explicitly - ubuntu-latest (24.04) has known emulator issues
+    # See: https://github.com/actions/runner-images/issues/11482
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
 
     steps:
