@@ -1,17 +1,30 @@
-// Detect available simulator based on environment
-// CI (Xcode 15.4) uses iPhone 15 Pro
-// Local (Xcode 26+) uses iPhone 17 Pro
+const { execSync } = require('child_process');
+
 const getDefaultSimulator = () => {
-  // Allow override via environment variable
   if (process.env.DETOX_DEVICE_TYPE) {
     return process.env.DETOX_DEVICE_TYPE;
   }
-  // Check if running in CI
   if (process.env.CI) {
     return 'iPhone 15 Pro';
   }
-  // Local development - use iPhone 17 Pro (Xcode 26+)
   return 'iPhone 17 Pro';
+};
+
+const getDefaultEmulator = () => {
+  if (process.env.DETOX_AVD_NAME) {
+    return process.env.DETOX_AVD_NAME;
+  }
+  if (process.env.CI) {
+    return 'Pixel_4_API_30';
+  }
+  try {
+    const avds = execSync('emulator -list-avds 2>/dev/null', { encoding: 'utf8' })
+      .split('\n')
+      .filter(Boolean);
+    return avds[0] || 'Pixel_4_API_30';
+  } catch {
+    return 'Pixel_4_API_30';
+  }
 };
 
 /** @type {Detox.DetoxConfig} */
@@ -36,6 +49,11 @@ module.exports = {
       binaryPath: 'ios/build/Build/Products/Release-iphonesimulator/RetroX.app',
       build: 'xcodebuild -workspace ios/RetroX.xcworkspace -scheme RetroX -configuration Release -sdk iphonesimulator -derivedDataPath ios/build',
     },
+    'ios.device.release': {
+      type: 'ios.app',
+      binaryPath: 'ios/build/Build/Products/Release-iphoneos/RetroX.app',
+      build: 'xcodebuild -workspace ios/RetroX.xcworkspace -scheme RetroX -configuration Release -sdk iphoneos -derivedDataPath ios/build CODE_SIGN_IDENTITY="Apple Development" CODE_SIGNING_ALLOWED=YES',
+    },
     'android.debug': {
       type: 'android.apk',
       binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
@@ -59,7 +77,7 @@ module.exports = {
     },
     emulator: {
       type: 'android.emulator',
-      device: { avdName: 'Pixel_4_API_30' },
+      device: { avdName: getDefaultEmulator() },
     },
   },
   configurations: {
