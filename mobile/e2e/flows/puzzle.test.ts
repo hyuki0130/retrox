@@ -1,12 +1,11 @@
 import { device, element, by, expect, waitFor } from 'detox';
 
 describe('Puzzle Game', () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
-  });
-
   beforeEach(async () => {
-    await device.reloadReactNative();
+    await device.launchApp({ newInstance: true });
+    await waitFor(element(by.id('home-screen')))
+      .toBeVisible()
+      .withTimeout(10000);
   });
 
   describe('Game Entry', () => {

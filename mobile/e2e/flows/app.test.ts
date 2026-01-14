@@ -1,12 +1,8 @@
 import { device, element, by, expect, waitFor } from 'detox';
 
 describe('App Navigation & Stability', () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
-  });
-
   beforeEach(async () => {
-    await device.reloadReactNative();
+    await device.launchApp({ newInstance: true });
   });
 
   describe('App Launch', () => {
@@ -145,9 +141,9 @@ describe('App Navigation & Stability', () => {
   });
 
   describe('App Stability', () => {
-    it('should handle multiple app reloads', async () => {
+    it('should handle multiple app relaunches', async () => {
       for (let i = 0; i < 3; i++) {
-        await device.reloadReactNative();
+        await device.launchApp({ newInstance: true });
         
         await waitFor(element(by.id('home-screen')))
           .toBeVisible()
