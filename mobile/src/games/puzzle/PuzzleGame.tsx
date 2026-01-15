@@ -35,6 +35,8 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const [timeLeft, setTimeLeft] = useState(60);
 
   const touchStart = useRef<{ row: number; col: number; x: number; y: number } | null>(null);
+  const selectedRef = useRef<{ row: number; col: number } | null>(null);
+  const swapRef = useRef<(r1: number, c1: number, r2: number, c2: number) => void>(() => {});
 
   const checkMatches = useCallback((g: CellType[][]): { row: number; col: number }[] => {
     const matches: { row: number; col: number }[] = [];
@@ -123,25 +125,13 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     setTimeout(processMatches, 100);
   }, [processMatches]);
 
-  const handleTap = useCallback((row: number, col: number) => {
-    if (selected) {
-      const dr = Math.abs(selected.row - row);
-      const dc = Math.abs(selected.col - col);
-
-      if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
-        swap(selected.row, selected.col, row, col);
-      }
-      setSelected(null);
-    } else {
-      setSelected({ row, col });
-    }
-  }, [selected, swap]);
+  swapRef.current = swap;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt, gestureState) => {
+      onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const col = Math.floor(locationX / CELL_SIZE);
         const row = Math.floor(locationY / CELL_SIZE);
@@ -152,7 +142,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
           touchStart.current = null;
         }
       },
-      onPanResponderRelease: (evt, gestureState) => {
+      onPanResponderRelease: (_, gestureState) => {
         if (!touchStart.current) return;
         
         const { row, col } = touchStart.current;
@@ -174,11 +164,25 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
             targetCol >= 0 && 
             targetCol < GRID_SIZE
           ) {
-            swap(row, col, targetRow, targetCol);
+            swapRef.current(row, col, targetRow, targetCol);
+            selectedRef.current = null;
             setSelected(null);
           }
         } else {
-          handleTap(row, col);
+          const currentSelected = selectedRef.current;
+          if (currentSelected) {
+            const dr = Math.abs(currentSelected.row - row);
+            const dc = Math.abs(currentSelected.col - col);
+
+            if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
+              swapRef.current(currentSelected.row, currentSelected.col, row, col);
+            }
+            selectedRef.current = null;
+            setSelected(null);
+          } else {
+            selectedRef.current = { row, col };
+            setSelected({ row, col });
+          }
         }
         
         touchStart.current = null;
@@ -205,6 +209,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     setScore(0);
     setTimeLeft(60);
     setSelected(null);
+    selectedRef.current = null;
   };
 
   return (

@@ -43,6 +43,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const lastEnemySpawn = useRef(0);
   const lastBulletFire = useRef(0);
   const nextSpawnTime = useRef(1500);
+  const bulletsRef = useRef<Entity[]>([]);
+  const enemiesRef = useRef<Entity[]>([]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -57,18 +59,6 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     })
   ).current;
 
-  const spawnEnemy = useCallback(() => {
-    const enemy: Entity = {
-      id: nextId.current++,
-      x: Math.random() * (width - ENEMY_SIZE) + ENEMY_SIZE / 2,
-      y: -ENEMY_SIZE,
-      active: true,
-      speed: Math.random() * 3 + 5,
-    };
-    setEnemies((prev) => [...prev, enemy]);
-    nextSpawnTime.current = Math.random() * 300 + 500;
-  }, []);
-
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -81,81 +71,78 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
           y: height - 100,
           active: true,
         };
-        setBullets((prev) => [...prev, bullet]);
+        bulletsRef.current = [...bulletsRef.current, bullet];
         lastBulletFire.current = 0;
       }
 
-      setBullets((prev) =>
-        prev
-          .map((b) => ({ ...b, y: b.y - 10 }))
-          .filter((b) => b.y > -BULLET_SIZE)
-      );
+      bulletsRef.current = bulletsRef.current
+        .map((b) => ({ ...b, y: b.y - 10 }))
+        .filter((b) => b.y > -BULLET_SIZE);
 
-      setEnemies((prev) =>
-        prev
-          .map((e) => ({ ...e, y: e.y + (e.speed ?? 3) }))
-          .filter((e) => e.y < height + ENEMY_SIZE)
-      );
+      enemiesRef.current = enemiesRef.current
+        .map((e) => ({ ...e, y: e.y + (e.speed ?? 3) }))
+        .filter((e) => e.y < height + ENEMY_SIZE);
 
       lastEnemySpawn.current += FRAME_MS;
       if (lastEnemySpawn.current > nextSpawnTime.current) {
-        spawnEnemy();
+        const enemy: Entity = {
+          id: nextId.current++,
+          x: Math.random() * (width - ENEMY_SIZE) + ENEMY_SIZE / 2,
+          y: -ENEMY_SIZE,
+          active: true,
+          speed: Math.random() * 3 + 5,
+        };
+        enemiesRef.current = [...enemiesRef.current, enemy];
+        nextSpawnTime.current = Math.random() * 300 + 500;
         lastEnemySpawn.current = 0;
       }
 
-      setBullets((prevBullets) => {
-        setEnemies((prevEnemies) => {
-          const newEnemies = [...prevEnemies];
-          const newBullets = [...prevBullets];
-          let scoreIncrease = 0;
+      let scoreIncrease = 0;
+      const newBullets = [...bulletsRef.current];
+      const newEnemies = [...enemiesRef.current];
 
-          for (let i = newBullets.length - 1; i >= 0; i--) {
-            for (let j = newEnemies.length - 1; j >= 0; j--) {
-              const dx = newBullets[i].x - newEnemies[j].x;
-              const dy = newBullets[i].y - newEnemies[j].y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
+      for (let i = newBullets.length - 1; i >= 0; i--) {
+        for (let j = newEnemies.length - 1; j >= 0; j--) {
+          const dx = newBullets[i].x - newEnemies[j].x;
+          const dy = newBullets[i].y - newEnemies[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-              if (dist < (BULLET_SIZE + ENEMY_SIZE) / 2) {
-                newBullets.splice(i, 1);
-                newEnemies.splice(j, 1);
-                scoreIncrease += 100;
-                break;
-              }
-            }
+          if (dist < (BULLET_SIZE + ENEMY_SIZE) / 2) {
+            newBullets.splice(i, 1);
+            newEnemies.splice(j, 1);
+            scoreIncrease += 100;
+            break;
           }
-
-          if (scoreIncrease > 0) {
-            setScore((s) => {
-              const newScore = s + scoreIncrease;
-              scoreRef.current = newScore;
-              onScoreChange?.(newScore);
-              return newScore;
-            });
-          }
-
-          return newEnemies;
-        });
-        return prevBullets;
-      });
-
-      setEnemies((prev) => {
-        const playerHit = prev.some((e) => {
-          const dx = e.x - playerXRef.current;
-          const dy = e.y - (height - 100 + PLAYER_SIZE / 2);
-          return Math.sqrt(dx * dx + dy * dy) < (PLAYER_SIZE + ENEMY_SIZE) / 2;
-        });
-
-        if (playerHit) {
-          setGameState('gameover');
-          onGameOver?.(scoreRef.current);
         }
+      }
 
-        return prev;
+      bulletsRef.current = newBullets;
+      enemiesRef.current = newEnemies;
+
+      const playerHit = enemiesRef.current.some((e) => {
+        const dx = e.x - playerXRef.current;
+        const dy = e.y - (height - 100 + PLAYER_SIZE / 2);
+        return Math.sqrt(dx * dx + dy * dy) < (PLAYER_SIZE + ENEMY_SIZE) / 2;
       });
+
+      setBullets(bulletsRef.current);
+      setEnemies(enemiesRef.current);
+
+      if (scoreIncrease > 0) {
+        const newScore = scoreRef.current + scoreIncrease;
+        scoreRef.current = newScore;
+        setScore(newScore);
+        onScoreChange?.(newScore);
+      }
+
+      if (playerHit) {
+        setGameState('gameover');
+        onGameOver?.(scoreRef.current);
+      }
     }, FRAME_MS);
 
     return () => clearInterval(gameLoop);
-  }, [gameState, spawnEnemy, onGameOver, onScoreChange]);
+  }, [gameState, onGameOver, onScoreChange]);
 
   const restart = () => {
     setGameState('playing');
@@ -163,6 +150,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     scoreRef.current = 0;
     setBullets([]);
     setEnemies([]);
+    bulletsRef.current = [];
+    enemiesRef.current = [];
     setPlayerX(width / 2);
     playerXRef.current = width / 2;
     lastBulletFire.current = 0;
