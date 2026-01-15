@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity } from 'react-native';
-import { Canvas, Circle, Rect, Group } from '@shopify/react-native-skia';
-import { useSharedValue } from 'react-native-reanimated';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder } from 'react-native';
+import { Canvas, Circle, Rect } from '@shopify/react-native-skia';
 
 const { width, height } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
@@ -14,6 +13,7 @@ interface Entity {
   x: number;
   y: number;
   active: boolean;
+  speed?: number;
 }
 
 interface ShooterGameProps {
@@ -31,8 +31,25 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const [bullets, setBullets] = useState<Entity[]>([]);
   const [enemies, setEnemies] = useState<Entity[]>([]);
 
+  const playerXRef = useRef(width / 2);
+  const scoreRef = useRef(0);
   const nextId = useRef(0);
   const lastEnemySpawn = useRef(0);
+  const lastBulletFire = useRef(0);
+  const nextSpawnTime = useRef(1500);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        if (gameState !== 'playing') return;
+        const newX = Math.max(PLAYER_SIZE / 2, Math.min(width - PLAYER_SIZE / 2, gestureState.moveX));
+        setPlayerX(newX);
+        playerXRef.current = newX;
+      },
+    })
+  ).current;
 
   const spawnEnemy = useCallback(() => {
     const enemy: Entity = {
@@ -40,31 +57,28 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       x: Math.random() * (width - ENEMY_SIZE) + ENEMY_SIZE / 2,
       y: -ENEMY_SIZE,
       active: true,
+      speed: Math.random() * 3 + 5,
     };
     setEnemies((prev) => [...prev, enemy]);
-  }, []);
-
-  const fireBullet = useCallback(() => {
-    const bullet: Entity = {
-      id: nextId.current++,
-      x: playerX,
-      y: height - 100,
-      active: true,
-    };
-    setBullets((prev) => [...prev, bullet]);
-  }, [playerX]);
-
-  const movePlayer = useCallback((direction: 'left' | 'right') => {
-    setPlayerX((prev) => {
-      const newX = direction === 'left' ? prev - 30 : prev + 30;
-      return Math.max(PLAYER_SIZE / 2, Math.min(width - PLAYER_SIZE / 2, newX));
-    });
+    nextSpawnTime.current = Math.random() * 300 + 500;
   }, []);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const gameLoop = setInterval(() => {
+      lastBulletFire.current += FRAME_MS;
+      if (lastBulletFire.current >= 120) {
+        const bullet: Entity = {
+          id: nextId.current++,
+          x: playerXRef.current,
+          y: height - 100,
+          active: true,
+        };
+        setBullets((prev) => [...prev, bullet]);
+        lastBulletFire.current = 0;
+      }
+
       setBullets((prev) =>
         prev
           .map((b) => ({ ...b, y: b.y - 10 }))
@@ -73,12 +87,12 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
       setEnemies((prev) =>
         prev
-          .map((e) => ({ ...e, y: e.y + 3 }))
+          .map((e) => ({ ...e, y: e.y + (e.speed ?? 3) }))
           .filter((e) => e.y < height + ENEMY_SIZE)
       );
 
       lastEnemySpawn.current += FRAME_MS;
-      if (lastEnemySpawn.current > 1500) {
+      if (lastEnemySpawn.current > nextSpawnTime.current) {
         spawnEnemy();
         lastEnemySpawn.current = 0;
       }
@@ -107,6 +121,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
           if (scoreIncrease > 0) {
             setScore((s) => {
               const newScore = s + scoreIncrease;
+              scoreRef.current = newScore;
               onScoreChange?.(newScore);
               return newScore;
             });
@@ -119,14 +134,14 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
       setEnemies((prev) => {
         const playerHit = prev.some((e) => {
-          const dx = e.x - playerX;
-          const dy = e.y - (height - 80);
+          const dx = e.x - playerXRef.current;
+          const dy = e.y - (height - 100 + PLAYER_SIZE / 2);
           return Math.sqrt(dx * dx + dy * dy) < (PLAYER_SIZE + ENEMY_SIZE) / 2;
         });
 
         if (playerHit) {
           setGameState('gameover');
-          onGameOver?.(score);
+          onGameOver?.(scoreRef.current);
         }
 
         return prev;
@@ -134,18 +149,26 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     }, FRAME_MS);
 
     return () => clearInterval(gameLoop);
-  }, [gameState, playerX, score, spawnEnemy, onGameOver, onScoreChange]);
+  }, [gameState, spawnEnemy, onGameOver, onScoreChange]);
 
   const restart = () => {
     setGameState('playing');
     setScore(0);
+    scoreRef.current = 0;
     setBullets([]);
     setEnemies([]);
     setPlayerX(width / 2);
+    playerXRef.current = width / 2;
+    lastBulletFire.current = 0;
+    lastEnemySpawn.current = 0;
   };
 
   return (
-    <View style={styles.container} testID="shooter-container">
+    <View 
+      style={styles.container} 
+      testID="shooter-container"
+      {...panResponder.panHandlers}
+    >
       <Text testID="shooter-score" style={styles.score}>SCORE: {score}</Text>
 
       <Canvas style={styles.canvas} testID="shooter-canvas">
@@ -169,18 +192,6 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-
-      <View style={styles.controls} testID="shooter-controls">
-        <TouchableOpacity style={styles.controlBtn} onPress={() => movePlayer('left')} testID="shooter-move-left">
-          <Text style={styles.controlText}>◀</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.controlBtn} onPress={fireBullet} testID="shooter-fire">
-          <Text style={styles.controlText}>FIRE</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => movePlayer('right')} testID="shooter-move-right">
-          <Text style={styles.controlText}>▶</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -189,9 +200,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   canvas: { flex: 1 },
   score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', textAlign: 'center', paddingTop: 50, fontFamily: 'monospace' },
-  controls: { flexDirection: 'row', justifyContent: 'space-around', paddingBottom: 40, paddingHorizontal: 20 },
-  controlBtn: { backgroundColor: '#333', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 8, borderWidth: 2, borderColor: '#00ff9d' },
-  controlText: { color: '#00ff9d', fontSize: 18, fontWeight: 'bold' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
   gameOverText: { color: '#ff0066', fontSize: 36, fontWeight: 'bold', fontFamily: 'monospace' },
   finalScore: { color: '#fff', fontSize: 24, marginTop: 20 },
