@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder } from 'react-native';
-import { Canvas, Rect, RoundedRect } from '@shopify/react-native-skia';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
+import { Canvas, RoundedRect } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 6;
@@ -8,37 +8,57 @@ const CELL_SIZE = Math.floor((width - 40) / GRID_SIZE);
 const COLORS = ['#ff0066', '#00ff9d', '#ffff00', '#00ccff', '#ff9900', '#cc00ff'];
 const SWIPE_THRESHOLD = 20;
 
-type CellType = number | null;
+interface CellState {
+  color: number;
+  yOffset: number;
+}
 
 interface PuzzleGameProps {
   onGameOver?: (score: number) => void;
   onScoreChange?: (score: number) => void;
 }
 
-const createGrid = (): CellType[][] => {
+const createGrid = (): CellState[][] => {
   return Array(GRID_SIZE)
     .fill(null)
     .map(() =>
       Array(GRID_SIZE)
         .fill(null)
-        .map(() => Math.floor(Math.random() * COLORS.length))
+        .map(() => ({ color: Math.floor(Math.random() * COLORS.length), yOffset: 0 }))
     );
 };
+
+const DROP_SPEED = 15;
 
 export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
-  const [grid, setGrid] = useState<CellType[][]>(createGrid);
+  const [grid, setGrid] = useState<CellState[][]>(createGrid);
   const [score, setScore] = useState(0);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
   const [timeLeft, setTimeLeft] = useState(60);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const touchStart = useRef<{ row: number; col: number; x: number; y: number } | null>(null);
   const selectedRef = useRef<{ row: number; col: number } | null>(null);
   const swapRef = useRef<(r1: number, c1: number, r2: number, c2: number) => void>(() => {});
+  const animationRef = useRef<number | null>(null);
+  const processMatchesRef = useRef<(matches: { row: number; col: number }[]) => void>(() => {});
 
-  const checkMatches = useCallback((g: CellType[][]): { row: number; col: number }[] => {
+  const handleContainerLayout = (event: LayoutChangeEvent) => {
+    setContainerHeight(event.nativeEvent.layout.height);
+  };
+
+  const boardSize = CELL_SIZE * GRID_SIZE;
+  const verticalPadding = containerHeight > 0 ? Math.max(0, (containerHeight - boardSize - 60) / 2) : 0;
+
+  const getColorGrid = useCallback((g: CellState[][]): (number | null)[][] => {
+    return g.map(row => row.map(cell => cell.color === -1 ? null : cell.color));
+  }, []);
+
+  const checkMatches = useCallback((g: (number | null)[][]): { row: number; col: number }[] => {
     const matches: { row: number; col: number }[] = [];
 
     for (let row = 0; row < GRID_SIZE; row++) {
@@ -60,138 +80,188 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     return matches;
   }, []);
 
-  const removeMatches = useCallback((g: CellType[][], matches: { row: number; col: number }[]): CellType[][] => {
-    const newGrid = g.map((row) => [...row]);
-    matches.forEach(({ row, col }) => {
-      newGrid[row][col] = null;
-    });
-    return newGrid;
-  }, []);
+  const animateDrops = useCallback(() => {
+    setGrid(currentGrid => {
+      const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell })));
+      let stillAnimating = false;
 
-  const dropCells = useCallback((g: CellType[][]): CellType[][] => {
-    const newGrid = g.map((row) => [...row]);
-
-    for (let col = 0; col < GRID_SIZE; col++) {
-      let writeRow = GRID_SIZE - 1;
-      for (let row = GRID_SIZE - 1; row >= 0; row--) {
-        if (newGrid[row][col] !== null) {
-          newGrid[writeRow][col] = newGrid[row][col];
-          if (writeRow !== row) newGrid[row][col] = null;
-          writeRow--;
+      for (let col = 0; col < GRID_SIZE; col++) {
+        for (let row = 0; row < GRID_SIZE; row++) {
+          if (newGrid[row][col].yOffset < 0) {
+            newGrid[row][col].yOffset = Math.min(0, newGrid[row][col].yOffset + DROP_SPEED);
+            if (newGrid[row][col].yOffset < 0) stillAnimating = true;
+          }
         }
       }
-      for (let row = writeRow; row >= 0; row--) {
-        newGrid[row][col] = Math.floor(Math.random() * COLORS.length);
-      }
-    }
 
-    return newGrid;
-  }, []);
-
-  const processMatches = useCallback(() => {
-    setGrid((currentGrid) => {
-      let newGrid = [...currentGrid.map((row) => [...row])];
-      let totalMatches = 0;
-
-      let matches = checkMatches(newGrid);
-      while (matches.length > 0) {
-        totalMatches += matches.length;
-        newGrid = removeMatches(newGrid, matches);
-        newGrid = dropCells(newGrid);
-        matches = checkMatches(newGrid);
-      }
-
-      if (totalMatches > 0) {
-        const points = totalMatches * 10;
-        setScore((s) => {
-          const newScore = s + points;
-          onScoreChange?.(newScore);
-          return newScore;
-        });
+      if (!stillAnimating) {
+        setIsAnimating(false);
+        setTimeout(() => {
+          const colorGrid = getColorGrid(newGrid);
+          const matches = checkMatches(colorGrid);
+          if (matches.length > 0) {
+            processMatchesRef.current(matches);
+          }
+        }, 50);
       }
 
       return newGrid;
     });
-  }, [checkMatches, removeMatches, dropCells, onScoreChange]);
+  }, [checkMatches, getColorGrid]);
+
+  useEffect(() => {
+    if (isAnimating) {
+      const animate = () => {
+        animateDrops();
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+      return () => {
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      };
+    }
+  }, [isAnimating, animateDrops]);
+
+  const processMatchesWithAnimation = useCallback((matches: { row: number; col: number }[]) => {
+    const points = matches.length * 10;
+    setScore(s => {
+      const newScore = s + points;
+      onScoreChange?.(newScore);
+      return newScore;
+    });
+
+    setGrid(currentGrid => {
+      const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell })));
+      
+      matches.forEach(({ row, col }) => {
+        newGrid[row][col] = { color: -1, yOffset: 0 };
+      });
+
+      for (let col = 0; col < GRID_SIZE; col++) {
+        let writeRow = GRID_SIZE - 1;
+        const columnCells: CellState[] = [];
+        
+        for (let row = GRID_SIZE - 1; row >= 0; row--) {
+          if (newGrid[row][col].color !== -1) {
+            const dropDistance = (writeRow - row) * CELL_SIZE;
+            columnCells.push({ 
+              color: newGrid[row][col].color, 
+              yOffset: dropDistance > 0 ? -dropDistance : 0 
+            });
+            writeRow--;
+          }
+        }
+
+        const newCellsNeeded = GRID_SIZE - columnCells.length;
+        for (let i = 0; i < newCellsNeeded; i++) {
+          columnCells.push({ 
+            color: Math.floor(Math.random() * COLORS.length), 
+            yOffset: -(newCellsNeeded - i) * CELL_SIZE 
+          });
+        }
+
+        columnCells.reverse();
+        for (let row = 0; row < GRID_SIZE; row++) {
+          newGrid[row][col] = columnCells[row];
+        }
+      }
+
+      setIsAnimating(true);
+      return newGrid;
+    });
+  }, [onScoreChange]);
+
+  processMatchesRef.current = processMatchesWithAnimation;
 
   const swap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
-    setGrid((g) => {
-      const newGrid = g.map((row) => [...row]);
+    if (isAnimating) return;
+    
+    setGrid(g => {
+      const newGrid = g.map(row => row.map(cell => ({ ...cell })));
       const temp = newGrid[r1][c1];
       newGrid[r1][c1] = newGrid[r2][c2];
       newGrid[r2][c2] = temp;
       return newGrid;
     });
-    setTimeout(processMatches, 100);
-  }, [processMatches]);
+
+    setTimeout(() => {
+      setGrid(currentGrid => {
+        const colorGrid = getColorGrid(currentGrid);
+        const matches = checkMatches(colorGrid);
+        if (matches.length > 0) {
+          processMatchesRef.current(matches);
+        }
+        return currentGrid;
+      });
+    }, 100);
+  }, [isAnimating, checkMatches, getColorGrid]);
 
   swapRef.current = swap;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        const { locationX, locationY } = evt.nativeEvent;
-        const col = Math.floor(locationX / CELL_SIZE);
-        const row = Math.floor(locationY / CELL_SIZE);
-        
-        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-          touchStart.current = { row, col, x: locationX, y: locationY };
-        } else {
-          touchStart.current = null;
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (!touchStart.current) return;
-        
-        const { row, col } = touchStart.current;
-        const { dx, dy } = gestureState;
-
-        if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(dy) > SWIPE_THRESHOLD) {
-          let targetRow = row;
-          let targetCol = col;
-
-          if (Math.abs(dx) > Math.abs(dy)) {
-            targetCol += dx > 0 ? 1 : -1;
-          } else {
-            targetRow += dy > 0 ? 1 : -1;
-          }
-
-          if (
-            targetRow >= 0 && 
-            targetRow < GRID_SIZE && 
-            targetCol >= 0 && 
-            targetCol < GRID_SIZE
-          ) {
-            swapRef.current(row, col, targetRow, targetCol);
-            selectedRef.current = null;
-            setSelected(null);
-          }
-        } else {
-          const currentSelected = selectedRef.current;
-          if (currentSelected) {
-            const dr = Math.abs(currentSelected.row - row);
-            const dc = Math.abs(currentSelected.col - col);
-
-            if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
-              swapRef.current(currentSelected.row, currentSelected.col, row, col);
-            }
-            selectedRef.current = null;
-            setSelected(null);
-          } else {
-            selectedRef.current = { row, col };
-            setSelected({ row, col });
-          }
-        }
-        
-        touchStart.current = null;
-      },
-      onPanResponderTerminate: () => {
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => !isAnimating,
+    onMoveShouldSetPanResponder: () => !isAnimating,
+    onPanResponderGrant: (evt) => {
+      if (isAnimating) return;
+      const { locationX, locationY } = evt.nativeEvent;
+      const col = Math.floor(locationX / CELL_SIZE);
+      const row = Math.floor(locationY / CELL_SIZE);
+      
+      if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+        touchStart.current = { row, col, x: locationX, y: locationY };
+      } else {
         touchStart.current = null;
       }
-    })
-  ).current;
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (isAnimating || !touchStart.current) return;
+      
+      const { row, col } = touchStart.current;
+      const { dx, dy } = gestureState;
+
+      if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(dy) > SWIPE_THRESHOLD) {
+        let targetRow = row;
+        let targetCol = col;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          targetCol += dx > 0 ? 1 : -1;
+        } else {
+          targetRow += dy > 0 ? 1 : -1;
+        }
+
+        if (
+          targetRow >= 0 && 
+          targetRow < GRID_SIZE && 
+          targetCol >= 0 && 
+          targetCol < GRID_SIZE
+        ) {
+          swapRef.current(row, col, targetRow, targetCol);
+          selectedRef.current = null;
+          setSelected(null);
+        }
+      } else {
+        const currentSelected = selectedRef.current;
+        if (currentSelected) {
+          const dr = Math.abs(currentSelected.row - row);
+          const dc = Math.abs(currentSelected.col - col);
+
+          if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
+            swapRef.current(currentSelected.row, currentSelected.col, row, col);
+          }
+          selectedRef.current = null;
+          setSelected(null);
+        } else {
+          selectedRef.current = { row, col };
+          setSelected({ row, col });
+        }
+      }
+      
+      touchStart.current = null;
+    },
+    onPanResponderTerminate: () => {
+      touchStart.current = null;
+    }
+  });
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -205,6 +275,8 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   }, [timeLeft, onGameOver, score]);
 
   const restart = () => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    setIsAnimating(false);
     setGrid(createGrid());
     setScore(0);
     setTimeLeft(60);
@@ -213,9 +285,8 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   };
 
   return (
-    <View style={styles.container} testID="puzzle-container">
-      <View style={styles.header}>
-        <Text style={styles.score}>SCORE: {score}</Text>
+    <View style={styles.container} testID="puzzle-container" onLayout={handleContainerLayout}>
+      <View style={[styles.timeContainer, { marginTop: verticalPadding }]}>
         <Text style={[styles.time, timeLeft < 10 && styles.timeWarning]}>TIME: {timeLeft}</Text>
         <Text testID="puzzle-score" style={styles.hiddenText}>{score}</Text>
         <Text testID="puzzle-time" style={styles.hiddenText}>{timeLeft}</Text>
@@ -228,17 +299,17 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         <Canvas style={styles.canvas} testID="puzzle-canvas">
           {grid.map((row, rowIdx) =>
             row.map((cell, colIdx) => {
-              if (cell === null) return null;
+              if (cell.color === -1) return null;
               const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
               return (
                 <RoundedRect
                   key={`${rowIdx}-${colIdx}`}
                   x={colIdx * CELL_SIZE + 2}
-                  y={rowIdx * CELL_SIZE + 2}
+                  y={rowIdx * CELL_SIZE + 2 + cell.yOffset}
                   width={CELL_SIZE - 4}
                   height={CELL_SIZE - 4}
                   r={8}
-                  color={COLORS[cell]}
+                  color={COLORS[cell.color]}
                   style={isSelected ? 'stroke' : 'fill'}
                   strokeWidth={isSelected ? 4 : 0}
                 />
@@ -274,10 +345,12 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 50 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 20 },
-  score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
-  time: { color: '#ffff00', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  timeContainer: { 
+    alignItems: 'center', 
+    marginBottom: 16,
+  },
+  time: { color: '#ffff00', fontSize: 24, fontWeight: 'bold', fontFamily: 'monospace' },
   timeWarning: { color: '#ff0000' },
   hiddenText: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   
@@ -286,6 +359,8 @@ const styles = StyleSheet.create({
     width: CELL_SIZE * GRID_SIZE, 
     height: CELL_SIZE * GRID_SIZE,
     position: 'relative',
+    borderRadius: 8,
+    backgroundColor: '#1a1a1a',
   },
   canvas: { flex: 1 },
   gridOverlay: { 
