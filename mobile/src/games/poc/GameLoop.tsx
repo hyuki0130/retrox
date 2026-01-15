@@ -9,7 +9,7 @@ interface GameLoopProps {}
 export const GameLoop: React.FC<GameLoopProps> = () => {
   const [position, setPosition] = useState({ x: width / 2 - BALL_SIZE / 2, y: height / 2 - BALL_SIZE / 2 });
   const velocity = useRef({ x: 4, y: 4 });
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
 
   const update = () => {
     setPosition((prev) => {

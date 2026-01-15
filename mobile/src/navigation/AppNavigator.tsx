@@ -1,5 +1,4 @@
 import React from 'react';
-import { enableScreens } from 'react-native-screens';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,8 +6,6 @@ import type { RootStackParamList } from './types';
 import { MainTabNavigator } from './MainTabNavigator';
 import { GameplayScreen } from '@/screens/GameplayScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
-
-enableScreens();
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 

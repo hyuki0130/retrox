@@ -102,7 +102,7 @@ export const GameplayScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.gameContainer}>
+      <View style={[styles.gameContainer, { paddingBottom: insets.bottom }]}>
         {renderGame()}
       </View>
 
