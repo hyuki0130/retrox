@@ -24,13 +24,20 @@ coverage/
 /mobile/ios/Pods/
 /mobile/ios/build/
 /mobile/ios/.xcode.env.local
+/mobile/ios/*.xcworkspace/xcuserdata/
+/mobile/ios/*.xcodeproj/xcuserdata/
 
 # React Native (Android)
 /mobile/android/.gradle/
 /mobile/android/build/
 /mobile/android/app/build/
+/mobile/android/app/.cxx/
 
 # IDE/OS
 .DS_Store
 .idea/
 .vscode/
+
+# Temporary/Reference
+.sisyphus/
+react-native/
