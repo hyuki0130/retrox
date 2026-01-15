@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder } from 'react-native';
 import { Canvas, Rect, RoundedRect } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 6;
 const CELL_SIZE = Math.floor((width - 40) / GRID_SIZE);
 const COLORS = ['#ff0066', '#00ff9d', '#ffff00', '#00ccff', '#ff9900', '#cc00ff'];
+const SWIPE_THRESHOLD = 20;
 
 type CellType = number | null;
 
@@ -32,6 +33,8 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const [score, setScore] = useState(0);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
   const [moves, setMoves] = useState(30);
+
+  const touchStart = useRef<{ row: number; col: number; x: number; y: number } | null>(null);
 
   const checkMatches = useCallback((g: CellType[][]): { row: number; col: number }[] => {
     const matches: { row: number; col: number }[] = [];
@@ -121,7 +124,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     setTimeout(processMatches, 100);
   }, [processMatches]);
 
-  const handleCellPress = useCallback((row: number, col: number) => {
+  const handleTap = useCallback((row: number, col: number) => {
     if (selected) {
       const dr = Math.abs(selected.row - row);
       const dc = Math.abs(selected.col - col);
@@ -134,6 +137,58 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       setSelected({ row, col });
     }
   }, [selected, swap]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt, gestureState) => {
+        const { locationX, locationY } = evt.nativeEvent;
+        const col = Math.floor(locationX / CELL_SIZE);
+        const row = Math.floor(locationY / CELL_SIZE);
+        
+        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+          touchStart.current = { row, col, x: locationX, y: locationY };
+        } else {
+          touchStart.current = null;
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (!touchStart.current) return;
+        
+        const { row, col } = touchStart.current;
+        const { dx, dy } = gestureState;
+
+        if (Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(dy) > SWIPE_THRESHOLD) {
+          let targetRow = row;
+          let targetCol = col;
+
+          if (Math.abs(dx) > Math.abs(dy)) {
+            targetCol += dx > 0 ? 1 : -1;
+          } else {
+            targetRow += dy > 0 ? 1 : -1;
+          }
+
+          if (
+            targetRow >= 0 && 
+            targetRow < GRID_SIZE && 
+            targetCol >= 0 && 
+            targetCol < GRID_SIZE
+          ) {
+            swap(row, col, targetRow, targetCol);
+            setSelected(null);
+          }
+        } else {
+          handleTap(row, col);
+        }
+        
+        touchStart.current = null;
+      },
+      onPanResponderTerminate: () => {
+        touchStart.current = null;
+      }
+    })
+  ).current;
 
   useEffect(() => {
     if (moves <= 0) {
@@ -157,39 +212,43 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         <Text testID="puzzle-moves" style={styles.hiddenText}>{moves}</Text>
       </View>
 
-      <Canvas style={[styles.canvas, { height: CELL_SIZE * GRID_SIZE + 20 }]} testID="puzzle-canvas">
-        {grid.map((row, rowIdx) =>
-          row.map((cell, colIdx) => {
-            if (cell === null) return null;
-            const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
-            return (
-              <RoundedRect
-                key={`${rowIdx}-${colIdx}`}
-                x={10 + colIdx * CELL_SIZE + 2}
-                y={10 + rowIdx * CELL_SIZE + 2}
-                width={CELL_SIZE - 4}
-                height={CELL_SIZE - 4}
-                r={8}
-                color={COLORS[cell]}
-                style={isSelected ? 'stroke' : 'fill'}
-                strokeWidth={isSelected ? 4 : 0}
-              />
-            );
-          })
-        )}
-      </Canvas>
+      <View 
+        style={styles.gameBoard} 
+        {...panResponder.panHandlers}
+      >
+        <Canvas style={styles.canvas} testID="puzzle-canvas">
+          {grid.map((row, rowIdx) =>
+            row.map((cell, colIdx) => {
+              if (cell === null) return null;
+              const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
+              return (
+                <RoundedRect
+                  key={`${rowIdx}-${colIdx}`}
+                  x={colIdx * CELL_SIZE + 2}
+                  y={rowIdx * CELL_SIZE + 2}
+                  width={CELL_SIZE - 4}
+                  height={CELL_SIZE - 4}
+                  r={8}
+                  color={COLORS[cell]}
+                  style={isSelected ? 'stroke' : 'fill'}
+                  strokeWidth={isSelected ? 4 : 0}
+                />
+              );
+            })
+          )}
+        </Canvas>
 
-      <View style={styles.touchGrid} testID="puzzle-grid">
-        {grid.map((row, rowIdx) =>
-          row.map((_, colIdx) => (
-            <TouchableOpacity
-              key={`touch-${rowIdx}-${colIdx}`}
-              style={[styles.touchCell, { width: CELL_SIZE, height: CELL_SIZE }]}
-              onPress={() => handleCellPress(rowIdx, colIdx)}
-              testID={`puzzle-cell-${rowIdx}-${colIdx}`}
-            />
-          ))
-        )}
+        <View style={styles.gridOverlay} testID="puzzle-grid" pointerEvents="none">
+          {grid.map((row, rowIdx) =>
+            row.map((_, colIdx) => (
+              <View
+                key={`cell-${rowIdx}-${colIdx}`}
+                style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                testID={`puzzle-cell-${rowIdx}-${colIdx}`}
+              />
+            ))
+          )}
+        </View>
       </View>
 
       {moves <= 0 && (
@@ -211,9 +270,20 @@ const styles = StyleSheet.create({
   score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
   moves: { color: '#ffff00', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
   hiddenText: { position: 'absolute', opacity: 0, height: 1, width: 1 },
-  canvas: { marginHorizontal: 10 },
-  touchGrid: { position: 'absolute', top: 90, left: 10, flexDirection: 'row', flexWrap: 'wrap', width: CELL_SIZE * GRID_SIZE },
-  touchCell: { opacity: 0 },
+  
+  gameBoard: { 
+    alignSelf: 'center',
+    width: CELL_SIZE * GRID_SIZE, 
+    height: CELL_SIZE * GRID_SIZE,
+    position: 'relative',
+  },
+  canvas: { flex: 1 },
+  gridOverlay: { 
+    ...StyleSheet.absoluteFillObject, 
+    flexDirection: 'row', 
+    flexWrap: 'wrap' 
+  },
+  
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
   gameOverText: { color: '#ff0066', fontSize: 36, fontWeight: 'bold', fontFamily: 'monospace' },
   finalScore: { color: '#fff', fontSize: 24, marginTop: 20 },
