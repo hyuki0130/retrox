@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder } from 'react-native';
-import { Canvas, Circle, Rect } from '@shopify/react-native-skia';
+import { Canvas, Group, Path, BlurMask, RoundedRect } from '@shopify/react-native-skia';
 
 const { width, height } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
 const BULLET_SIZE = 8;
 const ENEMY_SIZE = 30;
 const FRAME_MS = 16.67;
+
+// Skia Path Strings
+// Player: Arrow pointing up (40x40)
+const PLAYER_PATH = "M 20 0 L 40 40 L 20 30 L 0 40 Z";
+// Enemy: Inverted Triangle (30x30)
+const ENEMY_PATH = "M 0 0 L 30 0 L 15 30 Z";
 
 interface Entity {
   id: number;
@@ -172,14 +178,43 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       <Text testID="shooter-score" style={styles.score}>SCORE: {score}</Text>
 
       <Canvas style={styles.canvas} testID="shooter-canvas">
-        <Rect x={playerX - PLAYER_SIZE / 2} y={height - 100} width={PLAYER_SIZE} height={PLAYER_SIZE} color="#00ff9d" />
+        {/* Player */}
+        <Group transform={[{ translate: [playerX - PLAYER_SIZE / 2, height - 100] }]}>
+          <Path
+            path={PLAYER_PATH}
+            color="#00ff9d"
+            style="stroke"
+            strokeWidth={4}
+            opacity={0.5}
+          >
+            <BlurMask blur={4} style="normal" />
+          </Path>
+          <Path path={PLAYER_PATH} color="#00ff9d" />
+        </Group>
 
+        {/* Bullets */}
         {bullets.map((b) => (
-          <Circle key={b.id} cx={b.x} cy={b.y} r={BULLET_SIZE / 2} color="#ffff00" />
+          <Group key={b.id} transform={[{ translate: [b.x - 2, b.y - 6] }]}>
+            <RoundedRect
+              x={0}
+              y={0}
+              width={4}
+              height={12}
+              r={2}
+              color="#ffff00"
+              opacity={0.6}
+            >
+              <BlurMask blur={2} style="normal" />
+            </RoundedRect>
+            <RoundedRect x={0} y={0} width={4} height={12} r={2} color="#ffff00" />
+          </Group>
         ))}
 
+        {/* Enemies */}
         {enemies.map((e) => (
-          <Rect key={e.id} x={e.x - ENEMY_SIZE / 2} y={e.y - ENEMY_SIZE / 2} width={ENEMY_SIZE} height={ENEMY_SIZE} color="#ff0066" />
+          <Group key={e.id} transform={[{ translate: [e.x - ENEMY_SIZE / 2, e.y - ENEMY_SIZE / 2] }]}>
+            <Path path={ENEMY_PATH} color="#ff0066" />
+          </Group>
         ))}
       </Canvas>
 
