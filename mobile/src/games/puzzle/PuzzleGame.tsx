@@ -32,7 +32,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const [grid, setGrid] = useState<CellType[][]>(createGrid);
   const [score, setScore] = useState(0);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
-  const [moves, setMoves] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(60);
 
   const touchStart = useRef<{ row: number; col: number; x: number; y: number } | null>(null);
 
@@ -120,7 +120,6 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       newGrid[r2][c2] = temp;
       return newGrid;
     });
-    setMoves((m) => m - 1);
     setTimeout(processMatches, 100);
   }, [processMatches]);
 
@@ -191,15 +190,20 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   ).current;
 
   useEffect(() => {
-    if (moves <= 0) {
+    if (timeLeft <= 0) {
       onGameOver?.(score);
+      return;
     }
-  }, [moves, score, onGameOver]);
+    const timer = setInterval(() => {
+      setTimeLeft((t) => Math.max(0, t - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft, onGameOver, score]);
 
   const restart = () => {
     setGrid(createGrid());
     setScore(0);
-    setMoves(30);
+    setTimeLeft(60);
     setSelected(null);
   };
 
@@ -207,9 +211,9 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     <View style={styles.container} testID="puzzle-container">
       <View style={styles.header}>
         <Text style={styles.score}>SCORE: {score}</Text>
-        <Text style={styles.moves}>MOVES: {moves}</Text>
+        <Text style={[styles.time, timeLeft < 10 && styles.timeWarning]}>TIME: {timeLeft}</Text>
         <Text testID="puzzle-score" style={styles.hiddenText}>{score}</Text>
-        <Text testID="puzzle-moves" style={styles.hiddenText}>{moves}</Text>
+        <Text testID="puzzle-time" style={styles.hiddenText}>{timeLeft}</Text>
       </View>
 
       <View 
@@ -251,9 +255,9 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         </View>
       </View>
 
-      {moves <= 0 && (
+      {timeLeft <= 0 && (
         <View style={styles.overlay} testID="puzzle-gameover">
-          <Text style={styles.gameOverText}>TIME UP!</Text>
+          <Text style={styles.gameOverText}>TIME'S UP!</Text>
           <Text style={styles.finalScore} testID="puzzle-final-score">Final Score: {score}</Text>
           <TouchableOpacity style={styles.restartBtn} onPress={restart} testID="puzzle-restart">
             <Text style={styles.restartText}>PLAY AGAIN</Text>
@@ -268,7 +272,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 50 },
   header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 20 },
   score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
-  moves: { color: '#ffff00', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
+  time: { color: '#ffff00', fontSize: 20, fontWeight: 'bold', fontFamily: 'monospace' },
+  timeWarning: { color: '#ff0000' },
   hiddenText: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   
   gameBoard: { 
