@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
 import { Canvas, Group, Path, BlurMask, RoundedRect } from '@shopify/react-native-skia';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
 const BULLET_SIZE = 8;
 const ENEMY_SIZE = 30;
 const FRAME_MS = 16.67;
+const PLAYER_BOTTOM_MARGIN = 60;
 
 // Skia Path Strings
 // Player: Arrow pointing up (40x40)
@@ -36,6 +37,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const [playerX, setPlayerX] = useState(width / 2);
   const [bullets, setBullets] = useState<Entity[]>([]);
   const [enemies, setEnemies] = useState<Entity[]>([]);
+  const [canvasHeight, setCanvasHeight] = useState(600);
 
   const playerXRef = useRef(width / 2);
   const scoreRef = useRef(0);
@@ -45,6 +47,15 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const nextSpawnTime = useRef(1500);
   const bulletsRef = useRef<Entity[]>([]);
   const enemiesRef = useRef<Entity[]>([]);
+  const canvasHeightRef = useRef(600);
+
+  const handleCanvasLayout = (event: LayoutChangeEvent) => {
+    const { height: measuredHeight } = event.nativeEvent.layout;
+    setCanvasHeight(measuredHeight);
+    canvasHeightRef.current = measuredHeight;
+  };
+
+  const playerY = canvasHeight - PLAYER_BOTTOM_MARGIN;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -65,10 +76,11 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     const gameLoop = setInterval(() => {
       lastBulletFire.current += FRAME_MS;
       if (lastBulletFire.current >= 120) {
+        const bulletY = canvasHeightRef.current - PLAYER_BOTTOM_MARGIN;
         const bullet: Entity = {
           id: nextId.current++,
           x: playerXRef.current,
-          y: height - 100,
+          y: bulletY,
           active: true,
         };
         bulletsRef.current = [...bulletsRef.current, bullet];
@@ -81,7 +93,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
       enemiesRef.current = enemiesRef.current
         .map((e) => ({ ...e, y: e.y + (e.speed ?? 3) }))
-        .filter((e) => e.y < height + ENEMY_SIZE);
+        .filter((e) => e.y < canvasHeightRef.current + ENEMY_SIZE);
 
       lastEnemySpawn.current += FRAME_MS;
       if (lastEnemySpawn.current > nextSpawnTime.current) {
@@ -121,7 +133,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
       const playerHit = enemiesRef.current.some((e) => {
         const dx = e.x - playerXRef.current;
-        const dy = e.y - (height - 100 + PLAYER_SIZE / 2);
+        const playerCenterY = canvasHeightRef.current - PLAYER_BOTTOM_MARGIN + PLAYER_SIZE / 2;
+        const dy = e.y - playerCenterY;
         return Math.sqrt(dx * dx + dy * dy) < (PLAYER_SIZE + ENEMY_SIZE) / 2;
       });
 
@@ -164,11 +177,9 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       testID="shooter-container"
       {...panResponder.panHandlers}
     >
-      <Text testID="shooter-score" style={styles.score}>SCORE: {score}</Text>
-
-      <Canvas style={styles.canvas} testID="shooter-canvas">
-        {/* Player */}
-        <Group transform={[{ translate: [playerX - PLAYER_SIZE / 2, height - 100] }]}>
+      <View style={styles.canvasContainer} onLayout={handleCanvasLayout}>
+        <Canvas style={styles.canvas} testID="shooter-canvas">
+          <Group transform={[{ translate: [playerX - PLAYER_SIZE / 2, playerY] }]}>
           <Path
             path={PLAYER_PATH}
             color="#00ff9d"
@@ -199,13 +210,13 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
           </Group>
         ))}
 
-        {/* Enemies */}
         {enemies.map((e) => (
           <Group key={e.id} transform={[{ translate: [e.x - ENEMY_SIZE / 2, e.y - ENEMY_SIZE / 2] }]}>
             <Path path={ENEMY_PATH} color="#ff0066" />
           </Group>
         ))}
-      </Canvas>
+        </Canvas>
+      </View>
 
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="shooter-gameover">
@@ -222,8 +233,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
+  canvasContainer: { flex: 1 },
   canvas: { flex: 1 },
-  score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', textAlign: 'center', paddingTop: 50, fontFamily: 'monospace' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
   gameOverText: { color: '#ff0066', fontSize: 36, fontWeight: 'bold', fontFamily: 'monospace' },
   finalScore: { color: '#fff', fontSize: 24, marginTop: 20 },
