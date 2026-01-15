@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   canvas: { flex: 1 },
   score: { color: '#00ff9d', fontSize: 20, fontWeight: 'bold', textAlign: 'center', paddingTop: 50, fontFamily: 'monospace' },
-  controls: { flexDirection: 'row', justifyContent: 'space-around', paddingBottom: 40, paddingHorizontal: 20 },
+  controls: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 20, paddingBottom: 20 },
   controlBtn: { backgroundColor: '#333', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 8, borderWidth: 2, borderColor: '#00ff9d' },
   controlText: { color: '#00ff9d', fontSize: 18, fontWeight: 'bold' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
