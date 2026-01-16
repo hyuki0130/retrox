@@ -51,6 +51,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const canvasHeightRef = useRef(600);
   const gameTimeRef = useRef(0);
   const difficultyRef = useRef(1);
+  const gameStateRef = useRef<'countdown' | 'playing' | 'gameover'>('countdown');
 
   const handleCanvasLayout = (event: LayoutChangeEvent) => {
     const { height: measuredHeight } = event.nativeEvent.layout;
@@ -60,12 +61,17 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
   const playerY = canvasHeight - PLAYER_BOTTOM_MARGIN;
 
+  // Sync gameState to ref for PanResponder closure
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gestureState) => {
-        if (gameState !== 'playing') return;
+        if (gameStateRef.current !== 'playing') return;
         const newX = Math.max(PLAYER_SIZE / 2, Math.min(width - PLAYER_SIZE / 2, gestureState.moveX));
         setPlayerX(newX);
         playerXRef.current = newX;

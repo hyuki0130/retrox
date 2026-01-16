@@ -43,6 +43,7 @@ export const PongGame: React.FC<PongGameProps> = ({
   const canvasHeightRef = useRef(600);
   const gameStartTimeRef = useRef(Date.now());
   const speedMultiplierRef = useRef(1);
+  const gameStateRef = useRef<'countdown' | 'playing' | 'gameover'>('countdown');
 
   const handleCanvasLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
@@ -53,6 +54,11 @@ export const PongGame: React.FC<PongGameProps> = ({
 
   const lastDxRef = useRef(0);
 
+  // Sync gameState to ref for PanResponder closure
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -61,7 +67,7 @@ export const PongGame: React.FC<PongGameProps> = ({
         lastDxRef.current = 0;
       },
       onPanResponderMove: (_, gestureState) => {
-        if (gameState !== 'playing') return;
+        if (gameStateRef.current !== 'playing') return;
         const deltaDx = gestureState.dx - lastDxRef.current;
         lastDxRef.current = gestureState.dx;
         const newX = Math.max(0, Math.min(width - PADDLE_WIDTH, playerXRef.current + deltaDx));
