@@ -11,7 +11,7 @@ const ALL_GAMES: Game[] = [
   { id: 'tetris', name: 'Block Drop', icon: '🟦', difficulty: 'medium', coinCost: 150, isLocked: true, description: 'Classic block stacking' },
   { id: 'pacman', name: 'Maze Runner', icon: '🟡', difficulty: 'hard', coinCost: 250, isLocked: true, description: 'Navigate the maze' },
   { id: 'snake', name: 'Snake', icon: '🐍', difficulty: 'easy', coinCost: 100, isLocked: false, isNew: true, description: 'Classic snake game' },
-  { id: 'pong', name: 'Pong', icon: '🏓', difficulty: 'easy', coinCost: 100, isLocked: true, description: 'Table tennis classic' },
+  { id: 'pong', name: 'Pong', icon: '🏓', difficulty: 'easy', coinCost: 100, isLocked: false, isNew: true, description: 'Table tennis classic' },
   { id: 'breakout', name: 'Brick Breaker', icon: '🧱', difficulty: 'medium', coinCost: 150, isLocked: true, description: 'Break all the bricks' },
   { id: 'asteroids', name: 'Asteroids', icon: '☄️', difficulty: 'hard', coinCost: 200, isLocked: true, description: 'Destroy the asteroids' },
 ];
