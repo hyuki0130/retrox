@@ -1,20 +1,18 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLS = 10;
 const ROWS = 20;
-const CELL_SIZE = Math.floor((width - 48) / COLS);
-const BOARD_WIDTH = CELL_SIZE * COLS;
-const BOARD_HEIGHT = CELL_SIZE * ROWS;
 const INITIAL_DROP_INTERVAL = 800;
 const MIN_DROP_INTERVAL = 100;
 const SOFT_DROP_THRESHOLD = 30;
 const HARD_DROP_VELOCITY = 800;
 const MOVE_THRESHOLD = 20;
 const LEVEL_UP_INTERVAL = 10000;
+const DOUBLE_TAP_DELAY = 300;
 
 // Tetromino shapes (0-indexed rotations)
 const TETROMINOES: { [key: string]: { shape: number[][][]; color: string } } = {
@@ -110,6 +108,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   );
   const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
   const [nextPiece, setNextPiece] = useState<string>(PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)]);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   const boardRef = useRef<(string | null)[][]>(Array(ROWS).fill(null).map(() => Array(COLS).fill(null)));
   const currentPieceRef = useRef<Piece | null>(null);
@@ -118,6 +117,23 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const linesRef = useRef(0);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const gameStartTimeRef = useRef(Date.now());
+  const lastTapTimeRef = useRef(0);
+
+  const HEADER_HEIGHT = 60;
+  const CONTROLS_HEIGHT = 80;
+  const availableHeight = containerHeight - HEADER_HEIGHT - CONTROLS_HEIGHT;
+  const cellSize = Math.min(
+    Math.floor((SCREEN_WIDTH - 48) / COLS),
+    Math.floor(availableHeight / ROWS)
+  );
+  const BOARD_WIDTH = cellSize * COLS;
+  const BOARD_HEIGHT = cellSize * ROWS;
+  const boardOffsetX = (SCREEN_WIDTH - BOARD_WIDTH) / 2;
+
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    setContainerHeight(height);
+  };
 
   const getRandomPiece = useCallback((): string => {
     return PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
@@ -325,9 +341,16 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     const dt = Date.now() - touchStartRef.current.time;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
+    const now = Date.now();
 
     if (absDx < 20 && absDy < 20 && dt < 200) {
-      rotatePiece();
+      if (now - lastTapTimeRef.current < DOUBLE_TAP_DELAY) {
+        hardDrop();
+        lastTapTimeRef.current = 0;
+      } else {
+        rotatePiece();
+        lastTapTimeRef.current = now;
+      }
     } else if (absDy > absDx && dy > 50) {
       const velocity = dy / Math.max(dt, 1) * 1000;
       if (velocity > HARD_DROP_VELOCITY) {
@@ -363,15 +386,15 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     for (let y = 0; y < shape.length; y++) {
       for (let x = 0; x < shape[y].length; x++) {
         if (shape[y][x]) {
-          const cellX = offsetX + (piece.x + x) * CELL_SIZE;
-          const cellY = offsetY + (piece.y + y) * CELL_SIZE;
+          const cellX = offsetX + (piece.x + x) * cellSize;
+          const cellY = offsetY + (piece.y + y) * cellSize;
           cells.push(
             <React.Fragment key={`piece-${x}-${y}`}>
               <RoundedRect
                 x={cellX + 1}
                 y={cellY + 1}
-                width={CELL_SIZE - 2}
-                height={CELL_SIZE - 2}
+                width={cellSize - 2}
+                height={cellSize - 2}
                 r={3}
                 color={color}
                 opacity={0.5}
@@ -381,8 +404,8 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
               <RoundedRect
                 x={cellX + 1}
                 y={cellY + 1}
-                width={CELL_SIZE - 2}
-                height={CELL_SIZE - 2}
+                width={cellSize - 2}
+                height={cellSize - 2}
                 r={3}
                 color={color}
               />
@@ -394,12 +417,15 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     return cells;
   };
 
-  const boardOffsetX = (width - BOARD_WIDTH) / 2;
+  if (containerHeight === 0) {
+    return <View style={styles.container} onLayout={handleLayout} testID="blockdrop-container" />;
+  }
 
   return (
     <View 
       style={styles.container} 
       testID="blockdrop-container"
+      onLayout={handleLayout}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -419,51 +445,49 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
         </View>
       </View>
 
-      <View style={[styles.boardContainer, { marginLeft: boardOffsetX }]}>
-        <Canvas style={[styles.canvas, { width: BOARD_WIDTH, height: BOARD_HEIGHT }]}>
-          {/* Background */}
-          <Rect x={0} y={0} width={BOARD_WIDTH} height={BOARD_HEIGHT} color="#0a0a0a" />
-          
-          {/* Grid */}
-          {Array.from({ length: COLS + 1 }).map((_, i) => (
-            <Rect key={`v-${i}`} x={i * CELL_SIZE} y={0} width={1} height={BOARD_HEIGHT} color="#1a1a1a" />
-          ))}
-          {Array.from({ length: ROWS + 1 }).map((_, i) => (
-            <Rect key={`h-${i}`} x={0} y={i * CELL_SIZE} width={BOARD_WIDTH} height={1} color="#1a1a1a" />
-          ))}
+      <View style={[styles.boardWrapper]}>
+        <View style={[styles.boardContainer, { marginLeft: boardOffsetX }]}>
+          <Canvas style={[styles.canvas, { width: BOARD_WIDTH, height: BOARD_HEIGHT }]}>
+            <Rect x={0} y={0} width={BOARD_WIDTH} height={BOARD_HEIGHT} color="#0a0a0a" />
+            
+            {Array.from({ length: COLS + 1 }).map((_, i) => (
+              <Rect key={`v-${i}`} x={i * cellSize} y={0} width={1} height={BOARD_HEIGHT} color="#1a1a1a" />
+            ))}
+            {Array.from({ length: ROWS + 1 }).map((_, i) => (
+              <Rect key={`h-${i}`} x={0} y={i * cellSize} width={BOARD_WIDTH} height={1} color="#1a1a1a" />
+            ))}
 
-          {/* Placed blocks */}
-          {board.map((row, y) =>
-            row.map((cell, x) =>
-              cell && (
-                <RoundedRect
-                  key={`cell-${x}-${y}`}
-                  x={x * CELL_SIZE + 1}
-                  y={y * CELL_SIZE + 1}
-                  width={CELL_SIZE - 2}
-                  height={CELL_SIZE - 2}
-                  r={3}
-                  color={cell}
-                />
+            {board.map((row, y) =>
+              row.map((cell, x) =>
+                cell && (
+                  <RoundedRect
+                    key={`cell-${x}-${y}`}
+                    x={x * cellSize + 1}
+                    y={y * cellSize + 1}
+                    width={cellSize - 2}
+                    height={cellSize - 2}
+                    r={3}
+                    color={cell}
+                  />
+                )
               )
-            )
-          )}
+            )}
 
-          {/* Current piece */}
-          {currentPiece && renderPiece(currentPiece, 0, 0)}
-        </Canvas>
+            {currentPiece && renderPiece(currentPiece, 0, 0)}
+          </Canvas>
+        </View>
       </View>
 
       <View style={styles.controls}>
         <TouchableOpacity 
           style={styles.hardDropButton} 
           onPress={hardDrop}
-          activeOpacity={0.6}
+          activeOpacity={0.7}
           testID="blockdrop-harddrop"
         >
-          <Text style={styles.hardDropText}>DROP</Text>
+          <Text style={styles.hardDropText}>⬇ HARD DROP</Text>
         </TouchableOpacity>
-        <Text style={styles.controlHint}>Tap: Rotate | Swipe: Move | Button: Hard Drop</Text>
+        <Text style={styles.controlHint}>Tap: Rotate | Double-Tap: Drop | Swipe: Move</Text>
       </View>
 
       {gameState === 'gameover' && (
@@ -490,6 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 12,
     paddingHorizontal: 16,
+    height: 60,
   },
   statBox: {
     alignItems: 'center',
@@ -505,6 +530,11 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontWeight: 'bold',
   },
+  boardWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   boardContainer: {
     alignSelf: 'flex-start',
     borderWidth: 2,
@@ -515,12 +545,14 @@ const styles = StyleSheet.create({
   },
   controls: {
     alignItems: 'center',
-    marginTop: 16,
+    paddingVertical: 12,
+    height: 80,
   },
   controlHint: {
     color: '#666',
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'monospace',
+    marginTop: 4,
   },
   overlay: { 
     ...StyleSheet.absoluteFillObject, 
@@ -560,17 +592,16 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   hardDropButton: {
-    backgroundColor: 'rgba(0, 255, 157, 0.2)',
-    paddingVertical: 12,
-    paddingHorizontal: 40,
+    backgroundColor: 'rgba(0, 255, 157, 0.3)',
+    paddingVertical: 14,
+    paddingHorizontal: 48,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 255, 157, 0.5)',
-    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#00ff9d',
   },
   hardDropText: {
     color: '#00ff9d',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     fontFamily: 'monospace',
   },
