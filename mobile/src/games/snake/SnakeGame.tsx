@@ -7,6 +7,7 @@ const GRID_SIZE = 20;
 const CELL_SIZE = Math.floor((width - 32) / GRID_SIZE);
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 const FRAME_MS = 150;
+const MAX_LIVES = 3;
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
@@ -26,6 +27,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
 }) => {
   const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(MAX_LIVES);
   const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
   const [food, setFood] = useState<Position>({ x: 15, y: 10 });
   const [_direction, setDirection] = useState<Direction>('RIGHT');
@@ -35,6 +37,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   const nextDirectionRef = useRef<Direction>('RIGHT');
   const foodRef = useRef<Position>({ x: 15, y: 10 });
   const scoreRef = useRef(0);
+  const livesRef = useRef(MAX_LIVES);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const spawnFood = (currentSnake: Position[], currentScore: number = 0): Position => {
@@ -87,15 +90,43 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
 
       // Wall collision
       if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
-        setGameState('gameover');
-        onGameOver?.(scoreRef.current);
+        const newLives = livesRef.current - 1;
+        livesRef.current = newLives;
+        setLives(newLives);
+        
+        if (newLives <= 0) {
+          setGameState('gameover');
+          onGameOver?.(scoreRef.current);
+        } else {
+          // Respawn at center
+          const respawnSnake = [{ x: 10, y: 10 }];
+          snakeRef.current = respawnSnake;
+          setSnake(respawnSnake);
+          directionRef.current = 'RIGHT';
+          nextDirectionRef.current = 'RIGHT';
+          setDirection('RIGHT');
+        }
         return;
       }
 
       // Self collision
       if (currentSnake.some(seg => seg.x === head.x && seg.y === head.y)) {
-        setGameState('gameover');
-        onGameOver?.(scoreRef.current);
+        const newLives = livesRef.current - 1;
+        livesRef.current = newLives;
+        setLives(newLives);
+        
+        if (newLives <= 0) {
+          setGameState('gameover');
+          onGameOver?.(scoreRef.current);
+        } else {
+          // Respawn at center
+          const respawnSnake = [{ x: 10, y: 10 }];
+          snakeRef.current = respawnSnake;
+          setSnake(respawnSnake);
+          directionRef.current = 'RIGHT';
+          nextDirectionRef.current = 'RIGHT';
+          setDirection('RIGHT');
+        }
         return;
       }
 
@@ -163,7 +194,9 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
     
     setGameState('playing');
     setScore(0);
+    setLives(MAX_LIVES);
     scoreRef.current = 0;
+    livesRef.current = MAX_LIVES;
     setSnake(initialSnake);
     snakeRef.current = initialSnake;
     setFood(initialFood);
@@ -183,6 +216,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
       onTouchEnd={handleTouchEnd}
     >
       <View style={styles.scoreBar}>
+        <Text style={styles.livesText} testID="snake-lives">{'❤️'.repeat(lives)}</Text>
         <Text style={styles.scoreText} testID="snake-score">Score: {score}</Text>
         <Text style={styles.lengthText}>Length: {snake.length}</Text>
       </View>
@@ -274,6 +308,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  livesText: {
+    fontSize: 16,
+    letterSpacing: 2,
   },
   scoreText: {
     color: '#00ff9d',

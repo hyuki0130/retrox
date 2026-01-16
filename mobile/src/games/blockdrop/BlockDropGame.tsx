@@ -10,6 +10,8 @@ const BOARD_WIDTH = CELL_SIZE * COLS;
 const BOARD_HEIGHT = CELL_SIZE * ROWS;
 const INITIAL_DROP_INTERVAL = 800;
 const MIN_DROP_INTERVAL = 100;
+const SOFT_DROP_THRESHOLD = 30;
+const HARD_DROP_VELOCITY = 800;
 
 // Tetromino shapes (0-indexed rotations)
 const TETROMINOES: { [key: string]: { shape: number[][][]; color: string } } = {
@@ -288,11 +290,18 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     if (!touchStartRef.current || gameState !== 'playing') return;
     
     const dx = e.nativeEvent.pageX - touchStartRef.current.x;
+    const dy = e.nativeEvent.pageY - touchStartRef.current.y;
     
-    // Real-time horizontal movement during drag
     if (Math.abs(dx) > 40) {
       movePiece(dx > 0 ? 1 : -1, 0);
       touchStartRef.current.x = e.nativeEvent.pageX;
+    }
+    
+    if (dy > SOFT_DROP_THRESHOLD) {
+      movePiece(0, 1);
+      touchStartRef.current.y = e.nativeEvent.pageY;
+      scoreRef.current += 1;
+      setScore(scoreRef.current);
     }
   };
 
@@ -306,13 +315,13 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     const absDy = Math.abs(dy);
 
     if (absDx < 20 && absDy < 20 && dt < 200) {
-      // Tap - rotate
       rotatePiece();
     } else if (absDy > absDx && dy > 50) {
-      // Swipe down - hard drop
-      hardDrop();
+      const velocity = dy / Math.max(dt, 1) * 1000;
+      if (velocity > HARD_DROP_VELOCITY) {
+        hardDrop();
+      }
     }
-    // Horizontal movement is now handled in handleTouchMove
 
     touchStartRef.current = null;
   };
