@@ -444,7 +444,15 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
       </View>
 
       <View style={styles.controls}>
-        <Text style={styles.controlHint}>Tap: Rotate | Swipe: Move/Drop</Text>
+        <TouchableOpacity 
+          style={styles.hardDropButton} 
+          onPress={hardDrop}
+          activeOpacity={0.6}
+          testID="blockdrop-harddrop"
+        >
+          <Text style={styles.hardDropText}>DROP</Text>
+        </TouchableOpacity>
+        <Text style={styles.controlHint}>Tap: Rotate | Swipe: Move | Button: Hard Drop</Text>
       </View>
 
       {gameState === 'gameover' && (
@@ -537,6 +545,21 @@ const styles = StyleSheet.create({
   restartText: { 
     color: '#000', 
     fontSize: 18, 
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
+  hardDropButton: {
+    backgroundColor: 'rgba(0, 255, 157, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 157, 0.5)',
+    marginBottom: 12,
+  },
+  hardDropText: {
+    color: '#00ff9d',
+    fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'monospace',
   },
