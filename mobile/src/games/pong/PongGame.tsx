@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
 
 import { Canvas, RoundedRect, Rect, Circle, BlurMask } from '@shopify/react-native-skia';
+import { GameCountdown } from '@/ui';
 
 const { width } = Dimensions.get('window');
 const PADDLE_WIDTH = 80;
@@ -24,7 +25,7 @@ export const PongGame: React.FC<PongGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
-  const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [playerScore, setPlayerScore] = useState(0);
   const [playerLives, setPlayerLives] = useState(MAX_LIVES);
   const [playerX, setPlayerX] = useState(width / 2 - PADDLE_WIDTH / 2);
@@ -50,13 +51,20 @@ export const PongGame: React.FC<PongGameProps> = ({
     ballRef.current.y = height / 2;
   };
 
+  const lastDxRef = useRef(0);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        lastDxRef.current = 0;
+      },
       onPanResponderMove: (_, gestureState) => {
         if (gameState !== 'playing') return;
-        const newX = Math.max(0, Math.min(width - PADDLE_WIDTH, gestureState.moveX - PADDLE_WIDTH / 2));
+        const deltaDx = gestureState.dx - lastDxRef.current;
+        lastDxRef.current = gestureState.dx;
+        const newX = Math.max(0, Math.min(width - PADDLE_WIDTH, playerXRef.current + deltaDx));
         setPlayerX(newX);
         playerXRef.current = newX;
       },
@@ -160,6 +168,7 @@ export const PongGame: React.FC<PongGameProps> = ({
           onGameOver?.(playerScoreRef.current);
         } else {
           resetBall(-1);
+          setGameState('countdown');
         }
       }
 
@@ -173,8 +182,14 @@ export const PongGame: React.FC<PongGameProps> = ({
     return () => clearInterval(gameLoop);
   }, [gameState, onGameOver, onScoreChange]);
 
-  const restart = () => {
+  const handleCountdownComplete = useCallback(() => {
+    if (gameStartTimeRef.current === 0) {
+      gameStartTimeRef.current = Date.now();
+    }
     setGameState('playing');
+  }, []);
+
+  const restart = () => {
     setPlayerScore(0);
     setPlayerLives(MAX_LIVES);
     setLevel(1);
@@ -182,12 +197,13 @@ export const PongGame: React.FC<PongGameProps> = ({
     playerScoreRef.current = 0;
     playerLivesRef.current = MAX_LIVES;
     speedMultiplierRef.current = 1;
-    gameStartTimeRef.current = Date.now();
+    gameStartTimeRef.current = 0;
     setPlayerX(width / 2 - PADDLE_WIDTH / 2);
     setAiX(width / 2 - PADDLE_WIDTH / 2);
     playerXRef.current = width / 2 - PADDLE_WIDTH / 2;
     aiXRef.current = width / 2 - PADDLE_WIDTH / 2;
     resetBall(1);
+    setGameState('countdown');
   };
 
   return (
@@ -283,6 +299,10 @@ export const PongGame: React.FC<PongGameProps> = ({
       <View style={styles.controls}>
         <Text style={styles.controlHint}>Drag to move paddle</Text>
       </View>
+
+      {gameState === 'countdown' && (
+        <GameCountdown onComplete={handleCountdownComplete} />
+      )}
 
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="pong-gameover">
