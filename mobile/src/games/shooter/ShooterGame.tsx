@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
-import { Canvas, Group, Path, BlurMask, RoundedRect } from '@shopify/react-native-skia';
+import { Canvas, Group, Path, BlurMask, RoundedRect, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
+import { useShooterSprites } from '@/core';
 
 const { width } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
@@ -33,6 +34,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
+  const sprites = useShooterSprites();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [playerX, setPlayerX] = useState(width / 2);
@@ -202,42 +204,61 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     >
       <View style={styles.canvasContainer} onLayout={handleCanvasLayout}>
         <Canvas style={styles.canvas} testID="shooter-canvas">
-          <Group transform={[{ translate: [playerX - PLAYER_SIZE / 2, playerY] }]}>
-          <Path
-            path={PLAYER_PATH}
-            color="#00ff9d"
-            style="stroke"
-            strokeWidth={4}
-            opacity={0.5}
-          >
-            <BlurMask blur={4} style="normal" />
-          </Path>
-          <Path path={PLAYER_PATH} color="#00ff9d" />
-        </Group>
+          {/* Player */}
+          {sprites.player ? (
+            <Image
+              image={sprites.player}
+              x={playerX - PLAYER_SIZE / 2}
+              y={playerY}
+              width={PLAYER_SIZE}
+              height={PLAYER_SIZE}
+              fit="contain"
+            />
+          ) : (
+            <Group transform={[{ translate: [playerX - PLAYER_SIZE / 2, playerY] }]}>
+              <Path path={PLAYER_PATH} color="#00ff9d" />
+            </Group>
+          )}
 
-        {/* Bullets */}
-        {bullets.map((b) => (
-          <Group key={b.id} transform={[{ translate: [b.x - 2, b.y - 6] }]}>
-            <RoundedRect
-              x={0}
-              y={0}
-              width={4}
-              height={12}
-              r={2}
-              color="#ffff00"
-              opacity={0.6}
-            >
-              <BlurMask blur={2} style="normal" />
-            </RoundedRect>
-            <RoundedRect x={0} y={0} width={4} height={12} r={2} color="#ffff00" />
-          </Group>
-        ))}
+          {/* Bullets */}
+          {bullets.map((b) => (
+            sprites.laserBlue ? (
+              <Image
+                key={b.id}
+                image={sprites.laserBlue}
+                x={b.x - BULLET_SIZE / 2}
+                y={b.y - BULLET_SIZE * 1.5}
+                width={BULLET_SIZE}
+                height={BULLET_SIZE * 3}
+                fit="contain"
+              />
+            ) : (
+              <Group key={b.id} transform={[{ translate: [b.x - 2, b.y - 6] }]}>
+                <RoundedRect x={0} y={0} width={4} height={12} r={2} color="#ffff00" />
+              </Group>
+            )
+          ))}
 
-        {enemies.map((e) => (
-          <Group key={e.id} transform={[{ translate: [e.x - ENEMY_SIZE / 2, e.y - ENEMY_SIZE / 2] }]}>
-            <Path path={ENEMY_PATH} color="#ff0066" />
-          </Group>
-        ))}
+          {/* Enemies */}
+          {enemies.map((e) => {
+            const enemySprites = [sprites.enemy1, sprites.enemy2, sprites.enemy3];
+            const enemySprite = enemySprites[e.id % 3];
+            return enemySprite ? (
+              <Image
+                key={e.id}
+                image={enemySprite}
+                x={e.x - ENEMY_SIZE / 2}
+                y={e.y - ENEMY_SIZE / 2}
+                width={ENEMY_SIZE}
+                height={ENEMY_SIZE}
+                fit="contain"
+              />
+            ) : (
+              <Group key={e.id} transform={[{ translate: [e.x - ENEMY_SIZE / 2, e.y - ENEMY_SIZE / 2] }]}>
+                <Path path={ENEMY_PATH} color="#ff0066" />
+              </Group>
+            );
+          })}
         </Canvas>
       </View>
 

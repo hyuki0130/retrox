@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 
-import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
+import { Canvas, Rect, RoundedRect, BlurMask, Image, SkImage } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
+import { useBlockDropSprites } from '@/core';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLS = 10;
@@ -99,6 +100,16 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
+  const sprites = useBlockDropSprites();
+  const blockSprites: Record<string, SkImage | null> = {
+    '#00ffff': sprites.blockCyan,
+    '#ffff00': sprites.blockYellow,
+    '#aa00ff': sprites.blockPurple,
+    '#00ff00': sprites.blockGreen,
+    '#ff0000': sprites.blockRed,
+    '#0000ff': sprites.blockBlue,
+    '#ff8800': sprites.blockOrange,
+  };
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
@@ -378,6 +389,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const renderPiece = (piece: Piece, offsetX: number, offsetY: number) => {
     const shape = TETROMINOES[piece.type].shape[piece.rotation];
     const color = TETROMINOES[piece.type].color;
+    const sprite = blockSprites[color];
     const cells = [];
     
     for (let y = 0; y < shape.length; y++) {
@@ -386,19 +398,19 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
           const cellX = offsetX + (piece.x + x) * cellSize;
           const cellY = offsetY + (piece.y + y) * cellSize;
           cells.push(
-            <React.Fragment key={`piece-${x}-${y}`}>
-              <RoundedRect
+            sprite ? (
+              <Image
+                key={`piece-${x}-${y}`}
+                image={sprite}
                 x={cellX + 1}
                 y={cellY + 1}
                 width={cellSize - 2}
                 height={cellSize - 2}
-                r={3}
-                color={color}
-                opacity={0.5}
-              >
-                <BlurMask blur={3} style="normal" />
-              </RoundedRect>
+                fit="fill"
+              />
+            ) : (
               <RoundedRect
+                key={`piece-${x}-${y}`}
                 x={cellX + 1}
                 y={cellY + 1}
                 width={cellSize - 2}
@@ -406,7 +418,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
                 r={3}
                 color={color}
               />
-            </React.Fragment>
+            )
           );
         }
       }
@@ -455,8 +467,20 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
             ))}
 
             {board.map((row, y) =>
-              row.map((cell, x) =>
-                cell && (
+              row.map((cell, x) => {
+                if (!cell) return null;
+                const sprite = blockSprites[cell];
+                return sprite ? (
+                  <Image
+                    key={`cell-${x}-${y}`}
+                    image={sprite}
+                    x={x * cellSize + 1}
+                    y={y * cellSize + 1}
+                    width={cellSize - 2}
+                    height={cellSize - 2}
+                    fit="fill"
+                  />
+                ) : (
                   <RoundedRect
                     key={`cell-${x}-${y}`}
                     x={x * cellSize + 1}
@@ -466,8 +490,8 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
                     r={3}
                     color={cell}
                   />
-                )
-              )
+                );
+              })
             )}
 
             {currentPiece && renderPiece(currentPiece, 0, 0)}

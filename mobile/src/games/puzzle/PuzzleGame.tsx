@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
 
-import { Canvas, RoundedRect } from '@shopify/react-native-skia';
+import { Canvas, RoundedRect, Image, SkImage } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
+import { usePuzzleSprites } from '@/core';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 6;
@@ -36,6 +37,15 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
+  const sprites = usePuzzleSprites();
+  const gemSprites: (SkImage | null)[] = [
+    sprites.gemRed,
+    sprites.gemGreen,
+    sprites.gemYellow,
+    sprites.gemBlue,
+    sprites.gemOrange,
+    sprites.gemPurple,
+  ];
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [grid, setGrid] = useState<CellState[][]>(createGrid);
   const [score, setScore] = useState(0);
@@ -342,13 +352,41 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
             row.map((cell, colIdx) => {
               if (cell.color === -1) return null;
               const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
-              return (
+              const gemSprite = gemSprites[cell.color];
+              const x = colIdx * CELL_SIZE + 2;
+              const y = rowIdx * CELL_SIZE + 2 + cell.yOffset;
+              const size = CELL_SIZE - 4;
+              
+              return gemSprite ? (
+                <React.Fragment key={`${rowIdx}-${colIdx}`}>
+                  <Image
+                    image={gemSprite}
+                    x={x}
+                    y={y}
+                    width={size}
+                    height={size}
+                    fit="contain"
+                  />
+                  {isSelected && (
+                    <RoundedRect
+                      x={x}
+                      y={y}
+                      width={size}
+                      height={size}
+                      r={8}
+                      color="#fff"
+                      style="stroke"
+                      strokeWidth={3}
+                    />
+                  )}
+                </React.Fragment>
+              ) : (
                 <RoundedRect
                   key={`${rowIdx}-${colIdx}`}
-                  x={colIdx * CELL_SIZE + 2}
-                  y={rowIdx * CELL_SIZE + 2 + cell.yOffset}
-                  width={CELL_SIZE - 4}
-                  height={CELL_SIZE - 4}
+                  x={x}
+                  y={y}
+                  width={size}
+                  height={size}
                   r={8}
                   color={COLORS[cell.color]}
                   style={isSelected ? 'stroke' : 'fill'}

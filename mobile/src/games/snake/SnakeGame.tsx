@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 
-import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
+import { Canvas, Rect, RoundedRect, BlurMask, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
+import { useSnakeSprites } from '@/core';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 20;
@@ -28,6 +29,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
+  const sprites = useSnakeSprites();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
@@ -236,48 +238,54 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
           ))}
 
           {/* Food */}
-          <RoundedRect
-            x={food.x * CELL_SIZE + 2}
-            y={food.y * CELL_SIZE + 2}
-            width={CELL_SIZE - 4}
-            height={CELL_SIZE - 4}
-            r={4}
-            color="#ff0066"
-          >
-            <BlurMask blur={4} style="normal" />
-          </RoundedRect>
-          <RoundedRect
-            x={food.x * CELL_SIZE + 2}
-            y={food.y * CELL_SIZE + 2}
-            width={CELL_SIZE - 4}
-            height={CELL_SIZE - 4}
-            r={4}
-            color="#ff0066"
-          />
+          {sprites.apple ? (
+            <Image
+              image={sprites.apple}
+              x={food.x * CELL_SIZE + 1}
+              y={food.y * CELL_SIZE + 1}
+              width={CELL_SIZE - 2}
+              height={CELL_SIZE - 2}
+              fit="contain"
+            />
+          ) : (
+            <RoundedRect
+              x={food.x * CELL_SIZE + 2}
+              y={food.y * CELL_SIZE + 2}
+              width={CELL_SIZE - 4}
+              height={CELL_SIZE - 4}
+              r={4}
+              color="#ff0066"
+            />
+          )}
 
           {/* Snake */}
-          {snake.map((segment, index) => (
-            <React.Fragment key={`snake-${index}`}>
-              <RoundedRect
+          {snake.map((segment, index) => {
+            const isHead = index === 0;
+            const isTail = index === snake.length - 1 && snake.length > 1;
+            const sprite = isHead ? sprites.head : isTail ? sprites.tail : sprites.body;
+            
+            return sprite ? (
+              <Image
+                key={`snake-${index}`}
+                image={sprite}
                 x={segment.x * CELL_SIZE + 1}
                 y={segment.y * CELL_SIZE + 1}
                 width={CELL_SIZE - 2}
                 height={CELL_SIZE - 2}
-                r={index === 0 ? 6 : 3}
-                color={index === 0 ? '#00ff9d' : '#00cc7d'}
-              >
-                {index === 0 && <BlurMask blur={3} style="normal" />}
-              </RoundedRect>
-              <RoundedRect
-                x={segment.x * CELL_SIZE + 1}
-                y={segment.y * CELL_SIZE + 1}
-                width={CELL_SIZE - 2}
-                height={CELL_SIZE - 2}
-                r={index === 0 ? 6 : 3}
-                color={index === 0 ? '#00ff9d' : '#00cc7d'}
+                fit="contain"
               />
-            </React.Fragment>
-          ))}
+            ) : (
+              <RoundedRect
+                key={`snake-${index}`}
+                x={segment.x * CELL_SIZE + 1}
+                y={segment.y * CELL_SIZE + 1}
+                width={CELL_SIZE - 2}
+                height={CELL_SIZE - 2}
+                r={isHead ? 6 : 3}
+                color={isHead ? '#00ff9d' : '#00cc7d'}
+              />
+            );
+          })}
         </Canvas>
       </View>
 

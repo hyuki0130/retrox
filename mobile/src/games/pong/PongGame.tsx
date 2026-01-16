@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
 
-import { Canvas, RoundedRect, Rect, Circle, BlurMask } from '@shopify/react-native-skia';
+import { Canvas, RoundedRect, Rect, Circle, BlurMask, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
+import { usePongSprites } from '@/core';
 
 const { width } = Dimensions.get('window');
 const PADDLE_WIDTH = 80;
@@ -25,6 +26,7 @@ export const PongGame: React.FC<PongGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
+  const sprites = usePongSprites();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [playerScore, setPlayerScore] = useState(0);
   const [playerLives, setPlayerLives] = useState(MAX_LIVES);
@@ -242,63 +244,65 @@ export const PongGame: React.FC<PongGameProps> = ({
           <Circle cx={width / 2} cy={canvasHeight / 2} r={40} color="#1a1a1a" style="stroke" strokeWidth={2} />
 
           {/* AI Paddle (top) */}
-          <RoundedRect
-            x={aiX}
-            y={PADDLE_MARGIN}
-            width={PADDLE_WIDTH}
-            height={PADDLE_HEIGHT}
-            r={6}
-            color="#ff0066"
-            opacity={0.5}
-          >
-            <BlurMask blur={4} style="normal" />
-          </RoundedRect>
-          <RoundedRect
-            x={aiX}
-            y={PADDLE_MARGIN}
-            width={PADDLE_WIDTH}
-            height={PADDLE_HEIGHT}
-            r={6}
-            color="#ff0066"
-          />
+          {sprites.paddleRed ? (
+            <Image
+              image={sprites.paddleRed}
+              x={aiX}
+              y={PADDLE_MARGIN}
+              width={PADDLE_WIDTH}
+              height={PADDLE_HEIGHT}
+              fit="fill"
+            />
+          ) : (
+            <RoundedRect
+              x={aiX}
+              y={PADDLE_MARGIN}
+              width={PADDLE_WIDTH}
+              height={PADDLE_HEIGHT}
+              r={6}
+              color="#ff0066"
+            />
+          )}
 
           {/* Player Paddle (bottom) */}
-          <RoundedRect
-            x={playerX}
-            y={canvasHeight - PADDLE_MARGIN - PADDLE_HEIGHT}
-            width={PADDLE_WIDTH}
-            height={PADDLE_HEIGHT}
-            r={6}
-            color="#00ff9d"
-            opacity={0.5}
-          >
-            <BlurMask blur={4} style="normal" />
-          </RoundedRect>
-          <RoundedRect
-            x={playerX}
-            y={canvasHeight - PADDLE_MARGIN - PADDLE_HEIGHT}
-            width={PADDLE_WIDTH}
-            height={PADDLE_HEIGHT}
-            r={6}
-            color="#00ff9d"
-          />
+          {sprites.paddleBlue ? (
+            <Image
+              image={sprites.paddleBlue}
+              x={playerX}
+              y={canvasHeight - PADDLE_MARGIN - PADDLE_HEIGHT}
+              width={PADDLE_WIDTH}
+              height={PADDLE_HEIGHT}
+              fit="fill"
+            />
+          ) : (
+            <RoundedRect
+              x={playerX}
+              y={canvasHeight - PADDLE_MARGIN - PADDLE_HEIGHT}
+              width={PADDLE_WIDTH}
+              height={PADDLE_HEIGHT}
+              r={6}
+              color="#00ff9d"
+            />
+          )}
 
           {/* Ball */}
-          <Circle
-            cx={ballPos.x}
-            cy={ballPos.y}
-            r={BALL_SIZE / 2 + 4}
-            color="#fff"
-            opacity={0.3}
-          >
-            <BlurMask blur={6} style="normal" />
-          </Circle>
-          <Circle
-            cx={ballPos.x}
-            cy={ballPos.y}
-            r={BALL_SIZE / 2}
-            color="#fff"
-          />
+          {sprites.ball ? (
+            <Image
+              image={sprites.ball}
+              x={ballPos.x - BALL_SIZE / 2}
+              y={ballPos.y - BALL_SIZE / 2}
+              width={BALL_SIZE}
+              height={BALL_SIZE}
+              fit="contain"
+            />
+          ) : (
+            <Circle
+              cx={ballPos.x}
+              cy={ballPos.y}
+              r={BALL_SIZE / 2}
+              color="#fff"
+            />
+          )}
         </Canvas>
       </View>
 
