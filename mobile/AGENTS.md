@@ -148,6 +148,36 @@ try { ... } catch (error) {
 - Implement game loop with `requestAnimationFrame`
 - Sound: use `expo-av` or `react-native-sound`
 
+### SafeAreaView (MANDATORY)
+
+**모든 게임/스크린 컴포넌트는 반드시 SafeAreaView로 감싸야 합니다.**
+
+노치, 상태바, 홈 인디케이터와 UI가 겹치는 것을 방지합니다.
+
+```typescript
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export const GameComponent: React.FC = () => {
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Game content */}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+});
+```
+
+| Forbidden | Reason |
+|-----------|--------|
+| `View` as root without SafeAreaView | HUD/게임장이 노치/상태바와 겹침 |
+| SafeAreaView 없이 게임 컴포넌트 작성 | iOS/Android 기기별 safe area 미적용 |
+
 ## E2E Testing Guidelines (MANDATORY)
 
 ### testID Rules
