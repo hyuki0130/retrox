@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
 
@@ -9,6 +9,7 @@ const CELL_SIZE = Math.floor((width - 32) / GRID_SIZE);
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 const FRAME_MS = 150;
 const MAX_LIVES = 3;
+const HUD_HEIGHT = 60; // Approximate height of scoreBar + controls
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
@@ -33,6 +34,8 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   const [food, setFood] = useState<Position>({ x: 15, y: 10 });
   const [_direction, setDirection] = useState<Direction>('RIGHT');
 
+  const [containerHeight, setContainerHeight] = useState(0);
+
   const snakeRef = useRef<Position[]>([{ x: 10, y: 10 }]);
   const directionRef = useRef<Direction>('RIGHT');
   const nextDirectionRef = useRef<Direction>('RIGHT');
@@ -40,6 +43,12 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   const scoreRef = useRef(0);
   const livesRef = useRef(MAX_LIVES);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleContainerLayout = (event: LayoutChangeEvent) => {
+    setContainerHeight(event.nativeEvent.layout.height);
+  };
+
+  const verticalPadding = containerHeight > 0 ? Math.max(0, (containerHeight - BOARD_SIZE - HUD_HEIGHT) / 2) : 0;
 
   const spawnFood = (currentSnake: Position[], currentScore: number = 0): Position => {
     let newFood: Position;
@@ -207,8 +216,6 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
     nextDirectionRef.current = 'RIGHT';
   };
 
-  const offsetX = (width - BOARD_SIZE) / 2;
-
   return (
     <SafeAreaView 
       style={styles.container} 
@@ -216,14 +223,15 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
       testID="snake-container"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onLayout={handleContainerLayout}
     >
-      <View style={styles.scoreBar}>
+      <View style={[styles.scoreBar, { marginTop: verticalPadding }]}>
         <Text style={styles.livesText} testID="snake-lives">{'❤️'.repeat(lives)}</Text>
         <Text style={styles.scoreText} testID="snake-score">Score: {score}</Text>
         <Text style={styles.lengthText}>Length: {snake.length}</Text>
       </View>
 
-      <View style={[styles.boardContainer, { marginHorizontal: offsetX }]}>
+      <View style={styles.boardContainer}>
         <Canvas style={[styles.canvas, { width: BOARD_SIZE, height: BOARD_SIZE }]}>
           {/* Grid background */}
           <Rect x={0} y={0} width={BOARD_SIZE} height={BOARD_SIZE} color="#111" />
