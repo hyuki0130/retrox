@@ -48,6 +48,7 @@
     "@react-native/eslint-config": "^0.83.1",
     "@react-native/metro-config": "^0.83.1",
     "@react-native/typescript-config": "^0.83.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "^19.2.0",
@@ -60,6 +61,7 @@
     "jest-circus": "^29.7.0",
     "prettier": "^3.7.4",
     "react-test-renderer": "19.2.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3"
   },
   "engines": {

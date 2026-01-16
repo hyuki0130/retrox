@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Neon Glow Filters -->
+    <filter id="neonGlowPink" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="32" result="blur3"/>
+      <feMerge>
+        <feMergeNode in="blur3"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="neonGlowCyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="24" result="blur3"/>
+      <feMerge>
+        <feMergeNode in="blur3"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Rounded corners mask -->
+    <clipPath id="roundedCorners">
+      <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background with rounded corners (iOS style) -->
+  <g clip-path="url(#roundedCorners)">
+    <rect width="1024" height="1024" fill="#0B1020"/>
+    
+    <!-- Subtle grid pattern for retro feel -->
+    <g opacity="0.1">
+      <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+        <path d="M 64 0 L 0 0 0 64" fill="none" stroke="#3DF5FF" stroke-width="1"/>
+      </pattern>
+      <rect width="1024" height="1024" fill="url(#grid)"/>
+    </g>
+
+    <!-- Outer glow ring -->
+    <circle cx="512" cy="512" r="420" fill="none" stroke="#7A4DFF" stroke-width="4" opacity="0.3" filter="url(#neonGlowPink)"/>
+
+    <!-- UFO Body - Pixel Art Style (8x8 grid = 32px per pixel at 1024) -->
+    <g filter="url(#neonGlowCyan)">
+      <!-- UFO Dome (top) - Cyan -->
+      <rect x="416" y="288" width="64" height="32" fill="#3DF5FF"/>
+      <rect x="352" y="320" width="64" height="32" fill="#3DF5FF"/>
+      <rect x="416" y="320" width="64" height="32" fill="#3DF5FF"/>
+      <rect x="480" y="320" width="64" height="32" fill="#3DF5FF"/>
+      <rect x="544" y="320" width="64" height="32" fill="#3DF5FF"/>
+      <rect x="352" y="352" width="64" height="32" fill="#3DF5FF"/>
+      <rect x="416" y="352" width="64" height="32" fill="#5BFFFF"/>
+      <rect x="480" y="352" width="64" height="32" fill="#5BFFFF"/>
+      <rect x="544" y="352" width="64" height="32" fill="#3DF5FF"/>
+    </g>
+
+    <g filter="url(#neonGlowPink)">
+      <!-- UFO Saucer (middle) - Hot Pink -->
+      <rect x="224" y="384" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="288" y="384" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="352" y="384" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="416" y="384" width="64" height="32" fill="#FF6BC8"/>
+      <rect x="480" y="384" width="64" height="32" fill="#FF6BC8"/>
+      <rect x="544" y="384" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="608" y="384" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="672" y="384" width="64" height="32" fill="#FF3FB4"/>
+
+      <!-- UFO Bottom -->
+      <rect x="288" y="416" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="352" y="416" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="416" y="416" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="480" y="416" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="544" y="416" width="64" height="32" fill="#FF3FB4"/>
+      <rect x="608" y="416" width="64" height="32" fill="#FF3FB4"/>
+    </g>
+
+    <!-- UFO Lights (bottom) - alternating colors -->
+    <g filter="url(#softGlow)">
+      <rect x="320" y="448" width="48" height="24" fill="#3DF5FF"/>
+      <rect x="400" y="448" width="48" height="24" fill="#FF3FB4"/>
+      <rect x="480" y="448" width="48" height="24" fill="#3DF5FF"/>
+      <rect x="560" y="448" width="48" height="24" fill="#FF3FB4"/>
+    </g>
+
+    <!-- Beam (tractor beam effect) -->
+    <g filter="url(#neonGlowCyan)" opacity="0.6">
+      <polygon points="400,472 512,700 624,472" fill="#3DF5FF" opacity="0.3"/>
+      <polygon points="432,472 512,650 592,472" fill="#3DF5FF" opacity="0.4"/>
+      <polygon points="464,472 512,600 560,472" fill="#5BFFFF" opacity="0.5"/>
+    </g>
+
+    <!-- Stars -->
+    <g fill="#FFFFFF" opacity="0.8">
+      <rect x="160" y="200" width="8" height="8"/>
+      <rect x="800" y="280" width="8" height="8"/>
+      <rect x="720" y="160" width="8" height="8"/>
+      <rect x="240" y="320" width="6" height="6"/>
+      <rect x="760" y="400" width="6" height="6"/>
+      <rect x="180" y="480" width="8" height="8"/>
+      <rect x="820" y="560" width="6" height="6"/>
+      <rect x="140" y="680" width="8" height="8"/>
+      <rect x="860" y="720" width="8" height="8"/>
+      <rect x="280" y="760" width="6" height="6"/>
+      <rect x="700" y="800" width="8" height="8"/>
+    </g>
+
+    <!-- Pixel sparkles near UFO -->
+    <g filter="url(#softGlow)">
+      <rect x="200" y="360" width="12" height="12" fill="#FF3FB4"/>
+      <rect x="780" y="340" width="12" height="12" fill="#3DF5FF"/>
+      <rect x="160" y="520" width="10" height="10" fill="#7A4DFF"/>
+      <rect x="820" y="480" width="10" height="10" fill="#7A4DFF"/>
+    </g>
+  </g>
+</svg>
