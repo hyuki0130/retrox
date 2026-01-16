@@ -48,6 +48,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const bulletsRef = useRef<Entity[]>([]);
   const enemiesRef = useRef<Entity[]>([]);
   const canvasHeightRef = useRef(600);
+  const gameTimeRef = useRef(0);
+  const difficultyRef = useRef(1);
 
   const handleCanvasLayout = (event: LayoutChangeEvent) => {
     const { height: measuredHeight } = event.nativeEvent.layout;
@@ -74,8 +76,13 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     if (gameState !== 'playing') return;
 
     const gameLoop = setInterval(() => {
+      gameTimeRef.current += FRAME_MS;
+      difficultyRef.current = 1 + Math.floor(gameTimeRef.current / 10000) * 0.2 + scoreRef.current / 5000;
+      const difficulty = Math.min(difficultyRef.current, 3);
+
       lastBulletFire.current += FRAME_MS;
-      if (lastBulletFire.current >= 120) {
+      const fireRate = Math.max(60, 120 - difficulty * 15);
+      if (lastBulletFire.current >= fireRate) {
         const bulletY = canvasHeightRef.current - PLAYER_BOTTOM_MARGIN;
         const bullet: Entity = {
           id: nextId.current++,
@@ -88,24 +95,27 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       }
 
       bulletsRef.current = bulletsRef.current
-        .map((b) => ({ ...b, y: b.y - 10 }))
+        .map((b) => ({ ...b, y: b.y - 12 }))
         .filter((b) => b.y > -BULLET_SIZE);
 
+      const enemySpeedMultiplier = 1 + (difficulty - 1) * 0.3;
       enemiesRef.current = enemiesRef.current
-        .map((e) => ({ ...e, y: e.y + (e.speed ?? 3) }))
+        .map((e) => ({ ...e, y: e.y + (e.speed ?? 3) * enemySpeedMultiplier }))
         .filter((e) => e.y < canvasHeightRef.current + ENEMY_SIZE);
 
       lastEnemySpawn.current += FRAME_MS;
+      const spawnInterval = Math.max(200, 500 - difficulty * 80);
       if (lastEnemySpawn.current > nextSpawnTime.current) {
+        const baseSpeed = 4 + difficulty;
         const enemy: Entity = {
           id: nextId.current++,
           x: Math.random() * (width - ENEMY_SIZE) + ENEMY_SIZE / 2,
           y: -ENEMY_SIZE,
           active: true,
-          speed: Math.random() * 3 + 5,
+          speed: Math.random() * 3 + baseSpeed,
         };
         enemiesRef.current = [...enemiesRef.current, enemy];
-        nextSpawnTime.current = Math.random() * 300 + 500;
+        nextSpawnTime.current = Math.random() * 150 + spawnInterval;
         lastEnemySpawn.current = 0;
       }
 
@@ -169,6 +179,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     playerXRef.current = width / 2;
     lastBulletFire.current = 0;
     lastEnemySpawn.current = 0;
+    gameTimeRef.current = 0;
+    difficultyRef.current = 1;
   };
 
   return (

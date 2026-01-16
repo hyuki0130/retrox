@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSettingsStore, useCoinStore } from '@/store';
@@ -27,6 +27,8 @@ export const GamesScreen: React.FC = () => {
   const getThemeColors = useSettingsStore((s) => s.getThemeColors);
   const { coins, spendCoins } = useCoinStore();
   const colors = getThemeColors();
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleGamePress = (game: Game) => {
     if (game.isLocked) {
@@ -34,11 +36,31 @@ export const GamesScreen: React.FC = () => {
       return;
     }
     if (coins < game.coinCost) {
-      Alert.alert('Insufficient Coins', 'Watch an ad to earn more coins!');
+      Alert.alert(
+        'Insufficient Coins',
+        'Watch an ad to earn more coins!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Get Coins', onPress: () => navigation.navigate('CoinCharge') },
+        ]
+      );
       return;
     }
-    spendCoins(game.coinCost);
-    navigation.navigate('Gameplay', { gameId: game.id });
+    setSelectedGame(game);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmPlay = () => {
+    if (!selectedGame) return;
+    spendCoins(selectedGame.coinCost);
+    setShowConfirmModal(false);
+    setSelectedGame(null);
+    navigation.navigate('Gameplay', { gameId: selectedGame.id });
+  };
+
+  const handleCancelPlay = () => {
+    setShowConfirmModal(false);
+    setSelectedGame(null);
   };
 
   const renderGameItem = ({ item }: { item: Game }) => (
@@ -86,6 +108,66 @@ export const GamesScreen: React.FC = () => {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelPlay}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: '#1a1a1a', borderColor: colors.primary }]}>
+            {selectedGame && (
+              <>
+                <Text style={styles.modalIcon}>{selectedGame.icon}</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]} testID="confirm-game-name">
+                  {selectedGame.name}
+                </Text>
+                <Text style={[styles.modalDescription, { color: colors.text }]}>
+                  {selectedGame.description}
+                </Text>
+
+                <View style={styles.modalCostRow}>
+                  <Text style={[styles.modalCostLabel, { color: colors.text }]}>Cost:</Text>
+                  <View style={styles.costContainer}>
+                    <Text style={styles.coinIcon}>💰</Text>
+                    <Text style={[styles.modalCostValue, { color: colors.secondary }]}>
+                      {selectedGame.coinCost}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalBalanceRow}>
+                  <Text style={[styles.modalBalanceLabel, { color: colors.text }]}>Balance:</Text>
+                  <View style={styles.costContainer}>
+                    <Text style={styles.coinIcon}>💰</Text>
+                    <Text style={[styles.modalBalanceValue, { color: colors.primary }]} testID="confirm-coin-balance">
+                      {coins.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={handleCancelPlay}
+                    testID="confirm-cancel-button"
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: colors.primary }]}
+                    onPress={handleConfirmPlay}
+                    testID="confirm-play-button"
+                  >
+                    <Text style={styles.playButtonText}>Play</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -179,6 +261,96 @@ const styles = StyleSheet.create({
   },
   cost: {
     fontSize: 12,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  modalIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalDescription: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    opacity: 0.7,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalCostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
+  modalCostLabel: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  modalCostValue: {
+    fontSize: 18,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  modalBalanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 24,
+  },
+  modalBalanceLabel: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  modalBalanceValue: {
+    fontSize: 18,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#333',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
+  playButtonText: {
+    color: '#000',
+    fontSize: 14,
     fontFamily: 'monospace',
     fontWeight: 'bold',
   },

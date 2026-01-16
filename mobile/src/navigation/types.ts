@@ -6,6 +6,7 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   Gameplay: { gameId: string };
   Results: { score: number; gameId: string; highScore: number };
+  CoinCharge: undefined;
 };
 
 export type MainTabParamList = {
