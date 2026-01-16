@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
+import { GameCountdown } from '@/ui';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 20;
@@ -27,7 +28,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
-  const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
   const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
@@ -98,8 +99,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
         case 'RIGHT': head.x += 1; break;
       }
 
-      // Wall collision
-      if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+      const handleCollision = () => {
         const newLives = livesRef.current - 1;
         livesRef.current = newLives;
         setLives(newLives);
@@ -108,35 +108,23 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
           setGameState('gameover');
           onGameOver?.(scoreRef.current);
         } else {
-          // Respawn at center
           const respawnSnake = [{ x: 10, y: 10 }];
           snakeRef.current = respawnSnake;
           setSnake(respawnSnake);
           directionRef.current = 'RIGHT';
           nextDirectionRef.current = 'RIGHT';
           setDirection('RIGHT');
+          setGameState('countdown');
         }
+      };
+
+      if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+        handleCollision();
         return;
       }
 
-      // Self collision
       if (currentSnake.some(seg => seg.x === head.x && seg.y === head.y)) {
-        const newLives = livesRef.current - 1;
-        livesRef.current = newLives;
-        setLives(newLives);
-        
-        if (newLives <= 0) {
-          setGameState('gameover');
-          onGameOver?.(scoreRef.current);
-        } else {
-          // Respawn at center
-          const respawnSnake = [{ x: 10, y: 10 }];
-          snakeRef.current = respawnSnake;
-          setSnake(respawnSnake);
-          directionRef.current = 'RIGHT';
-          nextDirectionRef.current = 'RIGHT';
-          setDirection('RIGHT');
-        }
+        handleCollision();
         return;
       }
 
@@ -198,11 +186,14 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
     touchStartRef.current = null;
   };
 
+  const handleCountdownComplete = useCallback(() => {
+    setGameState('playing');
+  }, []);
+
   const restart = () => {
     const initialSnake = [{ x: 10, y: 10 }];
     const initialFood = spawnFood(initialSnake);
     
-    setGameState('playing');
     setScore(0);
     setLives(MAX_LIVES);
     scoreRef.current = 0;
@@ -214,6 +205,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
     setDirection('RIGHT');
     directionRef.current = 'RIGHT';
     nextDirectionRef.current = 'RIGHT';
+    setGameState('countdown');
   };
 
   return (
@@ -292,6 +284,10 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
       <View style={styles.controls}>
         <Text style={styles.controlHint}>Swipe to change direction</Text>
       </View>
+
+      {gameState === 'countdown' && (
+        <GameCountdown onComplete={handleCountdownComplete} />
+      )}
 
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="snake-gameover">

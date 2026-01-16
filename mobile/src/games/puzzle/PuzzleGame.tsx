@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
 
 import { Canvas, RoundedRect } from '@shopify/react-native-skia';
+import { GameCountdown } from '@/ui';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 6;
@@ -35,6 +36,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [grid, setGrid] = useState<CellState[][]>(createGrid);
   const [score, setScore] = useState(0);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
@@ -280,8 +282,14 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     }
   });
 
+  const handleCountdownComplete = useCallback(() => {
+    setGameState('playing');
+  }, []);
+
   useEffect(() => {
+    if (gameState !== 'playing') return;
     if (timeLeft <= 0) {
+      setGameState('gameover');
       onGameOver?.(score);
       return;
     }
@@ -289,7 +297,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       setTimeLeft((t) => Math.max(0, t - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, onGameOver, score]);
+  }, [gameState, timeLeft, onGameOver, score]);
 
   const restart = () => {
     if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -303,6 +311,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     setComboCount(0);
     setShowCombo(false);
     chainCountRef.current = 1;
+    setGameState('countdown');
   };
 
   return (
@@ -357,7 +366,11 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         </View>
       </View>
 
-      {timeLeft <= 0 && (
+      {gameState === 'countdown' && (
+        <GameCountdown onComplete={handleCountdownComplete} />
+      )}
+
+      {gameState === 'gameover' && (
         <View style={styles.overlay} testID="puzzle-gameover">
           <Text style={styles.gameOverText}>TIME'S UP!</Text>
           <Text style={styles.finalScore} testID="puzzle-final-score">Final Score: {score}</Text>
