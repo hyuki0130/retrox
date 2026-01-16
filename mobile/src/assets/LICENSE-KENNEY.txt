@@ -1,0 +1,22 @@
+Kenney Game Assets License (CC0 1.0 Universal)
+==============================================
+
+The game sprites in this directory are sourced from Kenney.nl
+and are licensed under the Creative Commons CC0 1.0 Universal license.
+
+License: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication
+Full License: https://creativecommons.org/publicdomain/zero/1.0/
+
+Summary:
+- You can copy, modify, distribute and perform the work, even for commercial purposes.
+- No permission needed, no attribution required (but appreciated).
+
+Asset Packs Used:
+- Space Shooter Redux: https://kenney.nl/assets/space-shooter-redux
+- Puzzle Pack 2: https://kenney.nl/assets/puzzle-pack-2
+- Puzzle Pack: https://kenney.nl/assets/puzzle-pack
+- Pixel Platformer Food Expansion: https://kenney.nl/assets/pixel-platformer-food-expansion
+- Physics Assets: https://kenney.nl/assets/physics-assets
+
+Website: https://kenney.nl
+Support Kenney: https://kenney.nl/donate
