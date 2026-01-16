@@ -8,7 +8,7 @@ import type { Game } from '@/navigation/types';
 const ALL_GAMES: Game[] = [
   { id: 'shooter', name: 'Space Shooter', icon: '🚀', difficulty: 'hard', coinCost: 200, isLocked: false, isNew: true, description: 'Galaga-style vertical shooter' },
   { id: 'puzzle', name: 'Match Puzzle', icon: '🧩', difficulty: 'medium', coinCost: 150, isLocked: false, description: 'Match-3 puzzle game' },
-  { id: 'tetris', name: 'Block Drop', icon: '🟦', difficulty: 'medium', coinCost: 150, isLocked: true, description: 'Classic block stacking' },
+  { id: 'tetris', name: 'Block Drop', icon: '🟦', difficulty: 'medium', coinCost: 150, isLocked: false, isNew: true, description: 'Classic block stacking' },
   { id: 'pacman', name: 'Maze Runner', icon: '🟡', difficulty: 'hard', coinCost: 250, isLocked: true, description: 'Navigate the maze' },
   { id: 'snake', name: 'Snake', icon: '🐍', difficulty: 'easy', coinCost: 100, isLocked: false, isNew: true, description: 'Classic snake game' },
   { id: 'pong', name: 'Pong', icon: '🏓', difficulty: 'easy', coinCost: 100, isLocked: false, isNew: true, description: 'Table tennis classic' },
