@@ -8,6 +8,7 @@ import { ShooterGame } from '@/games/shooter';
 import { PuzzleGame } from '@/games/puzzle';
 import { SnakeGame } from '@/games/snake';
 import { PongGame } from '@/games/pong';
+import { BlockDropGame } from '@/games/blockdrop';
 
 type GameplayRouteProp = RootStackScreenProps<'Gameplay'>['route'];
 
@@ -16,6 +17,7 @@ const GAME_REWARDS: Record<string, number> = {
   puzzle: 80,
   snake: 60,
   pong: 60,
+  tetris: 70,
 };
 
 export const GameplayScreen: React.FC = () => {
@@ -84,6 +86,13 @@ export const GameplayScreen: React.FC = () => {
       case 'pong':
         return (
           <PongGame 
+            onGameOver={handleGameOver}
+            onScoreChange={handleScoreChange}
+          />
+        );
+      case 'tetris':
+        return (
+          <BlockDropGame 
             onGameOver={handleGameOver}
             onScoreChange={handleScoreChange}
           />
