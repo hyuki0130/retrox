@@ -7,10 +7,12 @@ const PADDLE_WIDTH = 80;
 const PADDLE_HEIGHT = 12;
 const BALL_SIZE = 14;
 const FRAME_MS = 16.67;
-const WINNING_SCORE = 11;
+const MAX_LIVES = 3;
 const AI_SPEED = 4;
 const BALL_SPEED_INITIAL = 5;
 const PADDLE_MARGIN = 30;
+const SPEED_INCREASE_INTERVAL = 10000;
+const SPEED_INCREASE_RATE = 0.1;
 
 interface PongGameProps {
   onGameOver?: (score: number) => void;
@@ -23,18 +25,23 @@ export const PongGame: React.FC<PongGameProps> = ({
 }) => {
   const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
   const [playerScore, setPlayerScore] = useState(0);
-  const [aiScore, setAiScore] = useState(0);
+  const [playerLives, setPlayerLives] = useState(MAX_LIVES);
+  const [aiLives, setAiLives] = useState(MAX_LIVES);
   const [playerX, setPlayerX] = useState(width / 2 - PADDLE_WIDTH / 2);
   const [aiX, setAiX] = useState(width / 2 - PADDLE_WIDTH / 2);
   const [ballPos, setBallPos] = useState({ x: width / 2, y: 300 });
   const [canvasHeight, setCanvasHeight] = useState(600);
+  const [_speedMultiplier, setSpeedMultiplier] = useState(1);
 
   const playerXRef = useRef(width / 2 - PADDLE_WIDTH / 2);
   const aiXRef = useRef(width / 2 - PADDLE_WIDTH / 2);
   const ballRef = useRef({ x: width / 2, y: 300, vx: BALL_SPEED_INITIAL, vy: BALL_SPEED_INITIAL });
   const playerScoreRef = useRef(0);
-  const aiScoreRef = useRef(0);
+  const playerLivesRef = useRef(MAX_LIVES);
+  const aiLivesRef = useRef(MAX_LIVES);
   const canvasHeightRef = useRef(600);
+  const gameStartTimeRef = useRef(Date.now());
+  const speedMultiplierRef = useRef(1);
 
   const handleCanvasLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
@@ -57,11 +64,12 @@ export const PongGame: React.FC<PongGameProps> = ({
   ).current;
 
   const resetBall = (direction: number) => {
+    const currentSpeed = BALL_SPEED_INITIAL * speedMultiplierRef.current;
     ballRef.current = {
       x: width / 2,
       y: canvasHeightRef.current / 2,
-      vx: (Math.random() > 0.5 ? 1 : -1) * BALL_SPEED_INITIAL,
-      vy: direction * BALL_SPEED_INITIAL,
+      vx: (Math.random() > 0.5 ? 1 : -1) * currentSpeed,
+      vy: direction * currentSpeed,
     };
     setBallPos({ x: width / 2, y: canvasHeightRef.current / 2 });
   };
@@ -73,17 +81,21 @@ export const PongGame: React.FC<PongGameProps> = ({
       const ball = ballRef.current;
       const height = canvasHeightRef.current;
       
-      // Move ball
+      const elapsedTime = Date.now() - gameStartTimeRef.current;
+      const newMultiplier = 1 + Math.floor(elapsedTime / SPEED_INCREASE_INTERVAL) * SPEED_INCREASE_RATE;
+      if (newMultiplier !== speedMultiplierRef.current) {
+        speedMultiplierRef.current = newMultiplier;
+        setSpeedMultiplier(newMultiplier);
+      }
+      
       ball.x += ball.vx;
       ball.y += ball.vy;
 
-      // Wall collision (left/right)
       if (ball.x <= BALL_SIZE / 2 || ball.x >= width - BALL_SIZE / 2) {
         ball.vx *= -1;
         ball.x = Math.max(BALL_SIZE / 2, Math.min(width - BALL_SIZE / 2, ball.x));
       }
 
-      // Player paddle collision (bottom)
       const playerPaddleY = height - PADDLE_MARGIN - PADDLE_HEIGHT;
       if (
         ball.vy > 0 &&
@@ -92,14 +104,12 @@ export const PongGame: React.FC<PongGameProps> = ({
         ball.x >= playerXRef.current &&
         ball.x <= playerXRef.current + PADDLE_WIDTH
       ) {
-        ball.vy *= -1.05; // Speed up slightly
+        ball.vy *= -1.05;
         ball.y = playerPaddleY - BALL_SIZE / 2;
-        // Add angle based on hit position
         const hitPos = (ball.x - playerXRef.current) / PADDLE_WIDTH - 0.5;
         ball.vx += hitPos * 3;
       }
 
-      // AI paddle collision (top)
       const aiPaddleY = PADDLE_MARGIN;
       if (
         ball.vy < 0 &&
@@ -114,7 +124,6 @@ export const PongGame: React.FC<PongGameProps> = ({
         ball.vx += hitPos * 3;
       }
 
-      // AI movement
       const aiCenter = aiXRef.current + PADDLE_WIDTH / 2;
       const targetX = ball.x;
       if (aiCenter < targetX - 10) {
@@ -124,26 +133,28 @@ export const PongGame: React.FC<PongGameProps> = ({
       }
       setAiX(aiXRef.current);
 
-      // Scoring
       if (ball.y < 0) {
-        // Player scores
+        const newLives = aiLivesRef.current - 1;
+        aiLivesRef.current = newLives;
+        setAiLives(newLives);
+        
         const newScore = playerScoreRef.current + 1;
         playerScoreRef.current = newScore;
         setPlayerScore(newScore);
         onScoreChange?.(newScore);
         
-        if (newScore >= WINNING_SCORE) {
+        if (newLives <= 0) {
           setGameState('gameover');
           onGameOver?.(newScore);
         } else {
           resetBall(1);
         }
       } else if (ball.y > height) {
-        // AI scores
-        aiScoreRef.current += 1;
-        setAiScore(aiScoreRef.current);
+        const newLives = playerLivesRef.current - 1;
+        playerLivesRef.current = newLives;
+        setPlayerLives(newLives);
         
-        if (aiScoreRef.current >= WINNING_SCORE) {
+        if (newLives <= 0) {
           setGameState('gameover');
           onGameOver?.(playerScoreRef.current);
         } else {
@@ -151,8 +162,7 @@ export const PongGame: React.FC<PongGameProps> = ({
         }
       }
 
-      // Clamp ball speed
-      const maxSpeed = 12;
+      const maxSpeed = 12 * speedMultiplierRef.current;
       ball.vx = Math.max(-maxSpeed, Math.min(maxSpeed, ball.vx));
       ball.vy = Math.max(-maxSpeed, Math.min(maxSpeed, ball.vy));
 
@@ -165,9 +175,14 @@ export const PongGame: React.FC<PongGameProps> = ({
   const restart = () => {
     setGameState('playing');
     setPlayerScore(0);
-    setAiScore(0);
+    setPlayerLives(MAX_LIVES);
+    setAiLives(MAX_LIVES);
+    setSpeedMultiplier(1);
     playerScoreRef.current = 0;
-    aiScoreRef.current = 0;
+    playerLivesRef.current = MAX_LIVES;
+    aiLivesRef.current = MAX_LIVES;
+    speedMultiplierRef.current = 1;
+    gameStartTimeRef.current = Date.now();
     setPlayerX(width / 2 - PADDLE_WIDTH / 2);
     setAiX(width / 2 - PADDLE_WIDTH / 2);
     playerXRef.current = width / 2 - PADDLE_WIDTH / 2;
@@ -175,7 +190,7 @@ export const PongGame: React.FC<PongGameProps> = ({
     resetBall(1);
   };
 
-  const isPlayerWinner = playerScore >= WINNING_SCORE;
+  const isPlayerWinner = aiLives <= 0;
 
   return (
     <View 
@@ -186,12 +201,15 @@ export const PongGame: React.FC<PongGameProps> = ({
       <View style={styles.scoreBar}>
         <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>AI</Text>
-          <Text style={[styles.scoreValue, { color: '#ff0066' }]} testID="pong-ai-score">{aiScore}</Text>
+          <Text style={[styles.livesValue, { color: '#ff0066' }]} testID="pong-ai-lives">{'❤️'.repeat(aiLives)}</Text>
         </View>
-        <Text style={styles.vs}>VS</Text>
+        <View style={styles.scoreSection}>
+          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={[styles.scoreValue, { color: '#fff' }]} testID="pong-player-score">{playerScore}</Text>
+        </View>
         <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>YOU</Text>
-          <Text style={[styles.scoreValue, { color: '#00ff9d' }]} testID="pong-player-score">{playerScore}</Text>
+          <Text style={[styles.livesValue, { color: '#00ff9d' }]} testID="pong-player-lives">{'❤️'.repeat(playerLives)}</Text>
         </View>
       </View>
 
@@ -274,7 +292,7 @@ export const PongGame: React.FC<PongGameProps> = ({
             {isPlayerWinner ? 'YOU WIN!' : 'GAME OVER'}
           </Text>
           <Text style={styles.finalScore} testID="pong-final-score">
-            {playerScore} - {aiScore}
+            Score: {playerScore}
           </Text>
           <TouchableOpacity style={styles.restartBtn} onPress={restart} testID="pong-restart">
             <Text style={styles.restartText}>PLAY AGAIN</Text>
@@ -292,10 +310,10 @@ const styles = StyleSheet.create({
   },
   scoreBar: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 12,
-    gap: 24,
+    paddingHorizontal: 16,
   },
   scoreSection: {
     alignItems: 'center',
@@ -307,14 +325,13 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   scoreValue: {
-    fontSize: 32,
+    fontSize: 24,
     fontFamily: 'monospace',
     fontWeight: 'bold',
   },
-  vs: {
-    color: '#333',
+  livesValue: {
     fontSize: 16,
-    fontFamily: 'monospace',
+    letterSpacing: 2,
   },
   canvasContainer: { 
     flex: 1,

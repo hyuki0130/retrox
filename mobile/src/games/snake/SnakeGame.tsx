@@ -37,13 +37,35 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   const scoreRef = useRef(0);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  const spawnFood = (currentSnake: Position[]): Position => {
+  const spawnFood = (currentSnake: Position[], currentScore: number = 0): Position => {
     let newFood: Position;
+    const edgeMargin = 2;
+    const edgeChance = Math.min(0.7, currentScore / 1000);
+    const spawnNearEdge = Math.random() < edgeChance;
+    
     do {
-      newFood = {
-        x: Math.floor(Math.random() * GRID_SIZE),
-        y: Math.floor(Math.random() * GRID_SIZE),
-      };
+      if (spawnNearEdge) {
+        const edge = Math.floor(Math.random() * 4);
+        switch (edge) {
+          case 0: // Top edge
+            newFood = { x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * edgeMargin) };
+            break;
+          case 1: // Bottom edge
+            newFood = { x: Math.floor(Math.random() * GRID_SIZE), y: GRID_SIZE - 1 - Math.floor(Math.random() * edgeMargin) };
+            break;
+          case 2: // Left edge
+            newFood = { x: Math.floor(Math.random() * edgeMargin), y: Math.floor(Math.random() * GRID_SIZE) };
+            break;
+          default: // Right edge
+            newFood = { x: GRID_SIZE - 1 - Math.floor(Math.random() * edgeMargin), y: Math.floor(Math.random() * GRID_SIZE) };
+            break;
+        }
+      } else {
+        newFood = {
+          x: Math.floor(Math.random() * GRID_SIZE),
+          y: Math.floor(Math.random() * GRID_SIZE),
+        };
+      }
     } while (currentSnake.some(seg => seg.x === newFood.x && seg.y === newFood.y));
     return newFood;
   };
@@ -86,7 +108,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
         setScore(newScore);
         onScoreChange?.(newScore);
         
-        const newFood = spawnFood(currentSnake);
+        const newFood = spawnFood(currentSnake, scoreRef.current);
         foodRef.current = newFood;
         setFood(newFood);
       } else {
