@@ -6,12 +6,14 @@ import type { RootStackScreenProps } from '@/navigation/types';
 import { useSettingsStore, useCoinStore } from '@/store';
 import { ShooterGame } from '@/games/shooter';
 import { PuzzleGame } from '@/games/puzzle';
+import { SnakeGame } from '@/games/snake';
 
 type GameplayRouteProp = RootStackScreenProps<'Gameplay'>['route'];
 
 const GAME_REWARDS: Record<string, number> = {
   shooter: 100,
   puzzle: 80,
+  snake: 60,
 };
 
 export const GameplayScreen: React.FC = () => {
@@ -66,6 +68,13 @@ export const GameplayScreen: React.FC = () => {
       case 'puzzle':
         return (
           <PuzzleGame 
+            onGameOver={handleGameOver}
+            onScoreChange={handleScoreChange}
+          />
+        );
+      case 'snake':
+        return (
+          <SnakeGame 
             onGameOver={handleGameOver}
             onScoreChange={handleScoreChange}
           />
