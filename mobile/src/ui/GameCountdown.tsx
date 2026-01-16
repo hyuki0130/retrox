@@ -26,12 +26,17 @@ export const GameCountdown: React.FC<GameCountdownProps> = ({
       return () => clearTimeout(timer);
     } else if (count === 0 && !showGo) {
       setShowGo(true);
+    }
+  }, [count, showGo]);
+
+  useEffect(() => {
+    if (showGo) {
       const timer = setTimeout(() => {
         onCompleteRef.current();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [count, showGo]);
+  }, [showGo]);
 
   return (
     <View style={styles.overlay} testID="game-countdown">
