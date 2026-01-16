@@ -7,8 +7,8 @@ import type { Game } from '@/navigation/types';
 const GAMES: Game[] = [
   { 
     id: 'shooter', 
-    name: 'Shooter', 
-    icon: '🔫', 
+    name: 'Space Shooter', 
+    icon: '🚀', 
     difficulty: 'hard', 
     coinCost: 200, 
     isLocked: false, 
@@ -16,25 +16,26 @@ const GAMES: Game[] = [
   },
   { 
     id: 'puzzle', 
-    name: 'Puzzle', 
+    name: 'Match Puzzle', 
     icon: '🧩', 
     difficulty: 'medium', 
-    coinCost: 300, 
+    coinCost: 150, 
     isLocked: false 
   },
   { 
     id: 'tetris', 
-    name: 'Tetris', 
+    name: 'Block Drop', 
     icon: '🟦', 
-    difficulty: 'easy', 
+    difficulty: 'medium', 
     coinCost: 150, 
-    isLocked: true 
+    isLocked: false,
+    isNew: true 
   },
   { 
     id: 'pacman', 
-    name: 'Pac-Man', 
+    name: 'Maze Runner', 
     icon: '🟡', 
-    difficulty: 'medium', 
+    difficulty: 'hard', 
     coinCost: 250, 
     isLocked: true 
   },
@@ -44,7 +45,8 @@ const GAMES: Game[] = [
     icon: '🐍', 
     difficulty: 'easy', 
     coinCost: 100, 
-    isLocked: true 
+    isLocked: false,
+    isNew: true 
   },
   { 
     id: 'pong', 
@@ -52,7 +54,8 @@ const GAMES: Game[] = [
     icon: '🏓', 
     difficulty: 'easy', 
     coinCost: 100, 
-    isLocked: true 
+    isLocked: false,
+    isNew: true 
   },
 ];
 

@@ -274,7 +274,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     }, dropInterval);
 
     return () => clearInterval(gameLoop);
-  }, [gameState, movePiece, mergePiece, spawnPiece]);
+  }, [gameState, level, movePiece, mergePiece, spawnPiece]);
 
   const handleTouchStart = (e: GestureResponderEvent) => {
     touchStartRef.current = {
@@ -282,6 +282,18 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
       y: e.nativeEvent.pageY,
       time: Date.now(),
     };
+  };
+
+  const handleTouchMove = (e: GestureResponderEvent) => {
+    if (!touchStartRef.current || gameState !== 'playing') return;
+    
+    const dx = e.nativeEvent.pageX - touchStartRef.current.x;
+    
+    // Real-time horizontal movement during drag
+    if (Math.abs(dx) > 40) {
+      movePiece(dx > 0 ? 1 : -1, 0);
+      touchStartRef.current.x = e.nativeEvent.pageX;
+    }
   };
 
   const handleTouchEnd = (e: GestureResponderEvent) => {
@@ -299,13 +311,8 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     } else if (absDy > absDx && dy > 50) {
       // Swipe down - hard drop
       hardDrop();
-    } else if (absDx > 30) {
-      // Horizontal swipe - move
-      const moves = Math.floor(absDx / 40);
-      for (let i = 0; i < moves; i++) {
-        movePiece(dx > 0 ? 1 : -1, 0);
-      }
     }
+    // Horizontal movement is now handled in handleTouchMove
 
     touchStartRef.current = null;
   };
@@ -372,6 +379,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
       style={styles.container} 
       testID="blockdrop-container"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <View style={styles.header}>

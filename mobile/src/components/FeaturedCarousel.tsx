@@ -26,23 +26,23 @@ interface FeaturedGame {
 const FEATURED_GAMES: FeaturedGame[] = [
   { 
     id: 'shooter', 
-    title: 'SHOOTER', 
+    title: 'Space Shooter', 
     subtitle: 'Galaga-style Action', 
     badge: 'NEW', 
     backgroundColor: '#1a0a2e' 
   },
   { 
     id: 'puzzle', 
-    title: 'PUZZLE', 
+    title: 'Match Puzzle', 
     subtitle: 'Match-3 Challenge', 
     badge: 'HOT', 
     backgroundColor: '#0a1a2e' 
   },
   { 
     id: 'tetris', 
-    title: 'TETRIS', 
-    subtitle: 'Coming Soon...', 
-    badge: 'SOON', 
+    title: 'Block Drop', 
+    subtitle: 'Classic Block Stacking', 
+    badge: 'NEW', 
     backgroundColor: '#2e1a0a' 
   },
 ];
@@ -60,7 +60,6 @@ export const FeaturedCarousel: React.FC = () => {
   };
 
   const handleCardPress = (gameId: string) => {
-    if (gameId === 'tetris') return;
     navigation.navigate('Gameplay', { gameId });
   };
 
@@ -88,12 +87,11 @@ export const FeaturedCarousel: React.FC = () => {
             ]}
             onPress={() => handleCardPress(game.id)}
             activeOpacity={0.8}
-            disabled={game.id === 'tetris'}
           >
             {game.badge && (
               <View style={[
                 styles.badge, 
-                { backgroundColor: game.badge === 'SOON' ? '#666' : colors.secondary }
+                { backgroundColor: colors.secondary }
               ]}>
                 <Text style={styles.badgeText}>{game.badge}</Text>
               </View>
@@ -104,13 +102,11 @@ export const FeaturedCarousel: React.FC = () => {
             <Text style={[styles.subtitle, { color: colors.text }]}>
               {game.subtitle}
             </Text>
-            {game.id !== 'tetris' && (
-              <View style={[styles.playButton, { borderColor: colors.primary }]}>
-                <Text style={[styles.playButtonText, { color: colors.primary }]}>
-                  PLAY
-                </Text>
-              </View>
-            )}
+            <View style={[styles.playButton, { borderColor: colors.primary }]}>
+              <Text style={[styles.playButtonText, { color: colors.primary }]}>
+                PLAY
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
