@@ -38,13 +38,13 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   onScoreChange,
 }) => {
   const sprites = usePuzzleSprites();
-  const gemSprites: (SkImage | null)[] = [
-    sprites.gemRed,
-    sprites.gemGreen,
-    sprites.gemYellow,
-    sprites.gemBlue,
-    sprites.gemOrange,
-    sprites.gemPurple,
+  const tileSprites: (SkImage | null)[] = [
+    sprites.tileRed,
+    sprites.tileGreen,
+    sprites.tileYellow,
+    sprites.tileBlue,
+    sprites.tileOrange,
+    sprites.tilePink,
   ];
   const { particles, burst, clear: clearParticles } = useParticles();
   const { flashColor, flashOpacity, shakeX, shake, flash } = useScreenEffects();
@@ -367,15 +367,15 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
             row.map((cell, colIdx) => {
               if (cell.color === -1) return null;
               const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
-              const gemSprite = gemSprites[cell.color];
+              const tileSprite = tileSprites[cell.color];
               const x = colIdx * CELL_SIZE + 2;
               const y = rowIdx * CELL_SIZE + 2 + cell.yOffset;
               const size = CELL_SIZE - 4;
               
-              return gemSprite ? (
+              return tileSprite ? (
                 <React.Fragment key={`${rowIdx}-${colIdx}`}>
                   <Image
-                    image={gemSprite}
+                    image={tileSprite}
                     x={x}
                     y={y}
                     width={size}

@@ -10,6 +10,9 @@ const BULLET_SIZE = 8;
 const ENEMY_SIZE = 30;
 const FRAME_MS = 16.67;
 const PLAYER_BOTTOM_MARGIN = 60;
+const MAX_LIVES = 3;
+const SLOW_ENEMY_SPEED = 3;
+const FAST_ENEMY_SPEED = 7;
 
 // Skia Path Strings
 // Player: Arrow pointing up (40x40)
@@ -41,6 +44,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const { popups, show: showScorePopup, clear: clearPopups } = useScorePopup();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(MAX_LIVES);
   const [playerX, setPlayerX] = useState(width / 2);
   const [bullets, setBullets] = useState<Entity[]>([]);
   const [enemies, setEnemies] = useState<Entity[]>([]);
@@ -48,6 +52,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
   const playerXRef = useRef(width / 2);
   const scoreRef = useRef(0);
+  const livesRef = useRef(MAX_LIVES);
   const nextId = useRef(0);
   const lastEnemySpawn = useRef(0);
   const lastBulletFire = useRef(0);
@@ -144,11 +149,20 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
           if (dist < (BULLET_SIZE + ENEMY_SIZE) / 2) {
             const destroyedEnemy = newEnemies[j];
+            const enemySpeed = destroyedEnemy.speed ?? 3;
+            let points: number;
+            if (enemySpeed >= FAST_ENEMY_SPEED) {
+              points = 200;
+            } else if (enemySpeed <= SLOW_ENEMY_SPEED) {
+              points = 50;
+            } else {
+              points = 100;
+            }
             newBullets.splice(i, 1);
             newEnemies.splice(j, 1);
-            scoreIncrease += 100;
+            scoreIncrease += points;
             burst(destroyedEnemy.x, destroyedEnemy.y, 8, ['#ff0066', '#ff3388', '#ff6699']);
-            showScorePopup(destroyedEnemy.x, destroyedEnemy.y, 100);
+            showScorePopup(destroyedEnemy.x, destroyedEnemy.y, points);
             haptics.light();
             break;
           }
@@ -178,8 +192,22 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       if (playerHit) {
         damageEffect();
         haptics.error();
-        setGameState('gameover');
-        onGameOver?.(scoreRef.current);
+        const newLives = livesRef.current - 1;
+        livesRef.current = newLives;
+        setLives(newLives);
+        
+        enemiesRef.current = enemiesRef.current.filter((e) => {
+          const dx = e.x - playerXRef.current;
+          const playerCenterY = canvasHeightRef.current - PLAYER_BOTTOM_MARGIN + PLAYER_SIZE / 2;
+          const dy = e.y - playerCenterY;
+          return Math.sqrt(dx * dx + dy * dy) >= (PLAYER_SIZE + ENEMY_SIZE) / 2;
+        });
+        setEnemies([...enemiesRef.current]);
+        
+        if (newLives <= 0) {
+          setGameState('gameover');
+          onGameOver?.(scoreRef.current);
+        }
       }
     }, FRAME_MS);
 
@@ -192,7 +220,9 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
   const restart = () => {
     setScore(0);
+    setLives(MAX_LIVES);
     scoreRef.current = 0;
+    livesRef.current = MAX_LIVES;
     setBullets([]);
     setEnemies([]);
     bulletsRef.current = [];
@@ -214,6 +244,17 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       testID="shooter-container"
       {...panResponder.panHandlers}
     >
+      <View style={styles.hud}>
+        <View style={styles.hudSection}>
+          <Text style={styles.hudLabel}>LIVES</Text>
+          <Text style={styles.hudLives} testID="shooter-lives">{'❤️'.repeat(lives)}</Text>
+        </View>
+        <View style={styles.hudSection}>
+          <Text style={styles.hudLabel}>SCORE</Text>
+          <Text style={styles.hudScore} testID="shooter-score">{score}</Text>
+        </View>
+      </View>
+      
       <View style={styles.canvasContainer} onLayout={handleCanvasLayout}>
         <Canvas style={styles.canvas} testID="shooter-canvas">
           {/* Player */}
@@ -300,6 +341,30 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
+  hud: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  hudSection: {
+    alignItems: 'center',
+  },
+  hudLabel: {
+    color: '#666',
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  hudLives: {
+    fontSize: 18,
+    letterSpacing: 2,
+  },
+  hudScore: {
+    color: '#00ff9d',
+    fontSize: 24,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
   canvasContainer: { flex: 1 },
   canvas: { flex: 1 },
   flashOverlay: { ...StyleSheet.absoluteFillObject },

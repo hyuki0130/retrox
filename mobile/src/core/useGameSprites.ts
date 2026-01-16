@@ -33,14 +33,14 @@ export function useShooterSprites() {
 }
 
 export function usePuzzleSprites() {
-  const gemRed = useImage(require('@/assets/sprites/puzzle/gemRed.png'));
-  const gemGreen = useImage(require('@/assets/sprites/puzzle/gemGreen.png'));
-  const gemYellow = useImage(require('@/assets/sprites/puzzle/gemYellow.png'));
-  const gemBlue = useImage(require('@/assets/sprites/puzzle/gemBlue.png'));
-  const gemOrange = useImage(require('@/assets/sprites/puzzle/gemOrange.png'));
-  const gemPurple = useImage(require('@/assets/sprites/puzzle/gemPurple.png'));
+  const tileRed = useImage(require('@/assets/sprites/puzzle/tileRed.png'));
+  const tileGreen = useImage(require('@/assets/sprites/puzzle/tileGreen.png'));
+  const tileYellow = useImage(require('@/assets/sprites/puzzle/tileYellow.png'));
+  const tileBlue = useImage(require('@/assets/sprites/puzzle/tileBlue.png'));
+  const tileOrange = useImage(require('@/assets/sprites/puzzle/tileOrange.png'));
+  const tilePink = useImage(require('@/assets/sprites/puzzle/tilePink.png'));
   
-  return { gemRed, gemGreen, gemYellow, gemBlue, gemOrange, gemPurple };
+  return { tileRed, tileGreen, tileYellow, tileBlue, tileOrange, tilePink };
 }
 
 export function usePongSprites() {
