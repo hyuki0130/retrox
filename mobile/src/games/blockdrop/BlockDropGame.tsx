@@ -294,12 +294,11 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     setScore(scoreRef.current);
     
     shake(3);
-    haptics.light();
     
     mergePiece(currentPieceRef.current);
     currentPieceRef.current = null;
     spawnPiece();
-  }, [movePiece, mergePiece, spawnPiece, shake, haptics]);
+  }, [movePiece, mergePiece, spawnPiece, shake]);
 
   // Initial spawn
   useEffect(() => {
