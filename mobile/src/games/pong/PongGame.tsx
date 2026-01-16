@@ -31,6 +31,7 @@ export const PongGame: React.FC<PongGameProps> = ({
   const [aiX, setAiX] = useState(width / 2 - PADDLE_WIDTH / 2);
   const [ballPos, setBallPos] = useState({ x: width / 2, y: 300 });
   const [canvasHeight, setCanvasHeight] = useState(600);
+  const [level, setLevel] = useState(1);
   const [_speedMultiplier, setSpeedMultiplier] = useState(1);
 
   const playerXRef = useRef(width / 2 - PADDLE_WIDTH / 2);
@@ -82,10 +83,12 @@ export const PongGame: React.FC<PongGameProps> = ({
       const height = canvasHeightRef.current;
       
       const elapsedTime = Date.now() - gameStartTimeRef.current;
-      const newMultiplier = 1 + Math.floor(elapsedTime / SPEED_INCREASE_INTERVAL) * SPEED_INCREASE_RATE;
+      const newLevel = Math.floor(elapsedTime / SPEED_INCREASE_INTERVAL) + 1;
+      const newMultiplier = 1 + (newLevel - 1) * SPEED_INCREASE_RATE;
       if (newMultiplier !== speedMultiplierRef.current) {
         speedMultiplierRef.current = newMultiplier;
         setSpeedMultiplier(newMultiplier);
+        setLevel(newLevel);
       }
       
       ball.x += ball.vx;
@@ -108,6 +111,13 @@ export const PongGame: React.FC<PongGameProps> = ({
         ball.y = playerPaddleY - BALL_SIZE / 2;
         const hitPos = (ball.x - playerXRef.current) / PADDLE_WIDTH - 0.5;
         ball.vx += hitPos * 3;
+        
+        const currentLevel = Math.floor(elapsedTime / SPEED_INCREASE_INTERVAL) + 1;
+        const hitScore = 10 * currentLevel;
+        const newScore = playerScoreRef.current + hitScore;
+        playerScoreRef.current = newScore;
+        setPlayerScore(newScore);
+        onScoreChange?.(newScore);
       }
 
       const aiPaddleY = PADDLE_MARGIN;
@@ -138,7 +148,9 @@ export const PongGame: React.FC<PongGameProps> = ({
         aiLivesRef.current = newLives;
         setAiLives(newLives);
         
-        const newScore = playerScoreRef.current + 1;
+        const currentLevel = Math.floor(elapsedTime / SPEED_INCREASE_INTERVAL) + 1;
+        const missScore = 100 * currentLevel;
+        const newScore = playerScoreRef.current + missScore;
         playerScoreRef.current = newScore;
         setPlayerScore(newScore);
         onScoreChange?.(newScore);
@@ -177,6 +189,7 @@ export const PongGame: React.FC<PongGameProps> = ({
     setPlayerScore(0);
     setPlayerLives(MAX_LIVES);
     setAiLives(MAX_LIVES);
+    setLevel(1);
     setSpeedMultiplier(1);
     playerScoreRef.current = 0;
     playerLivesRef.current = MAX_LIVES;
@@ -202,6 +215,10 @@ export const PongGame: React.FC<PongGameProps> = ({
         <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>AI</Text>
           <Text style={[styles.livesValue, { color: '#ff0066' }]} testID="pong-ai-lives">{'❤️'.repeat(aiLives)}</Text>
+        </View>
+        <View style={styles.scoreSection}>
+          <Text style={styles.scoreLabel}>LEVEL</Text>
+          <Text style={[styles.scoreValue, { color: '#ffcc00' }]} testID="pong-level">{level}</Text>
         </View>
         <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>SCORE</Text>
