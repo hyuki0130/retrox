@@ -229,6 +229,165 @@ git worktree remove worktree/{issue-id}
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## Gate System (BLOCKING - 반드시 통과해야 다음 단계 진행)
+
+**각 Gate에서 검증 실패 시 → 다음 단계 진행 불가**
+
+### Gate 1: 작업 시작 전 (Pre-Work)
+
+| 검증 항목 | 명령어 | 통과 기준 |
+|-----------|--------|-----------|
+| Linear 이슈 존재 | `linear_get_issue {issue-id}` | 이슈 찾음 |
+| 이슈 상태 | - | `In Progress` 설정됨 |
+| Worktree 생성 | `git worktree list` | `worktree/{issue-id}` 존재 |
+| main에서 직접 작업 안함 | `git branch --show-current` | `main` 아님 |
+
+**위반 시**: 작업 시작 전에 반드시 Linear 이슈 생성 → In Progress → Worktree 생성
+
+### Gate 2: 커밋 전 (Pre-Commit)
+
+```bash
+# 자동화 스크립트 실행
+./scripts/pre-commit-check.sh
+```
+
+| 검증 항목 | 명령어 | 통과 기준 |
+|-----------|--------|-----------|
+| Lint | `npm run lint` | Exit 0 (에러 0개) |
+| TypeCheck | `npm run typecheck` | Exit 0 |
+| Unit Tests | `npm test` | All pass |
+| 변경 파일 존재 | `git status` | 커밋할 파일 있음 |
+
+**위반 시**: 테스트/린트 실패 수정 후 재시도
+
+### Gate 3: PR 생성 전 (Pre-PR)
+
+| 검증 항목 | 명령어 | 통과 기준 |
+|-----------|--------|-----------|
+| 원격에 Push됨 | `git status` | "Your branch is ahead" |
+| 커밋 메시지 | `git log -1 --format=%s` | Convention 준수 |
+| 브랜치명 | `git branch --show-current` | 이슈 ID 포함 |
+
+**위반 시**: Push 먼저 수행
+
+### Gate 4: 머지 전 (Pre-Merge)
+
+| 검증 항목 | 명령어 | 통과 기준 |
+|-----------|--------|-----------|
+| PR 생성됨 | `gh pr view` | PR 존재 |
+| CI 통과 | `gh pr checks` | All pass |
+| Linear 이슈 링크 | Linear API | PR attachment 존재 |
+
+**위반 시**: CI 실패 수정 또는 Linear 이슈에 PR 링크 추가
+
+### Gate 5: 완료 선언 전 (Pre-Done)
+
+| 검증 항목 | 명령어 | 통과 기준 |
+|-----------|--------|-----------|
+| PR 머지됨 | `gh pr view --json state` | `MERGED` |
+| main 최신화 | `git pull origin main` | Fast-forward |
+| 통합 테스트 | `npm test` (main에서) | All pass |
+| Linear 업데이트 | Linear API | `Done` + PR 링크 + Completed Work |
+| Worktree 정리 | `git worktree list` | 해당 worktree 없음 |
+
+**위반 시**: 위 항목 모두 완료 후 Done 선언
+
+---
+
+## Violation Recovery (위반 시 복구 절차)
+
+### 케이스 1: Linear 이슈 없이 작업 시작함
+
+```bash
+# 1. 현재 변경사항 스태시
+git stash
+
+# 2. Linear 이슈 생성 (MCP 또는 웹)
+# linear_create_issue ...
+
+# 3. 올바른 worktree 생성
+git worktree add worktree/{new-issue-id} -b {new-issue-id} origin/main
+
+# 4. 스태시 적용
+cd worktree/{new-issue-id}
+git stash pop
+
+# 5. Linear 이슈 In Progress로 변경
+```
+
+### 케이스 2: main에서 직접 작업함
+
+```bash
+# 1. 변경사항 스태시
+git stash
+
+# 2. Linear 이슈 생성/확인
+# 3. worktree 생성
+git worktree add worktree/{issue-id} -b {issue-id} origin/main
+
+# 4. worktree로 이동 후 스태시 적용
+cd worktree/{issue-id}
+git stash pop
+```
+
+### 케이스 3: 테스트 실패 상태로 커밋/푸시함
+
+```bash
+# 1. 로컬에서 테스트 수정
+npm run lint -- --fix
+npm run typecheck
+npm test
+
+# 2. 수정 커밋
+git add . && git commit -m "fix: resolve lint/test failures"
+git push
+
+# 3. CI 재실행 (필요시)
+gh pr checks --watch
+```
+
+### 케이스 4: PR 없이 Done 처리함
+
+```bash
+# 1. 해당 이슈 찾기
+# linear_get_issue {issue-id}
+
+# 2. 관련 커밋/PR 찾기
+git log --oneline --grep="{issue-id}"
+gh pr list --state merged --search "{issue-id}"
+
+# 3. Linear 이슈에 PR 링크 추가
+# linear_update_issue ...
+
+# 4. Completed Work 섹션 추가
+```
+
+---
+
+## Workflow Automation Scripts
+
+### 자동 검증 스크립트 위치
+
+```
+scripts/
+├── pre-commit-check.sh    # Gate 2: 커밋 전 자동 검증
+├── workflow-check.sh      # 전체 워크플로우 상태 확인
+└── setup-hooks.sh         # Git hooks 설치
+```
+
+### 사용법
+
+```bash
+# Git hooks 설치 (최초 1회)
+./scripts/setup-hooks.sh
+
+# 수동 워크플로우 상태 확인
+./scripts/workflow-check.sh {issue-id}
+
+# 커밋 전 자동 실행 (hook 설치 시)
+# git commit 시 자동으로 pre-commit-check.sh 실행
+```
+
 ## Issue Tracking Guidelines
 
 ### Issue Description Update Format
