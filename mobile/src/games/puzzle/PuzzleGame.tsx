@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Canvas, RoundedRect } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
@@ -306,7 +306,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']} testID="puzzle-container" onLayout={handleContainerLayout}>
+    <View style={styles.container} testID="puzzle-container" onLayout={handleContainerLayout}>
       <View style={[styles.timeContainer, { marginTop: verticalPadding }]}>
         <Text style={[styles.time, timeLeft < 10 && styles.timeWarning]}>TIME: {timeLeft}</Text>
         <Text testID="puzzle-score" style={styles.hiddenText}>{score}</Text>
@@ -366,7 +366,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
@@ -13,6 +13,8 @@ const INITIAL_DROP_INTERVAL = 800;
 const MIN_DROP_INTERVAL = 100;
 const SOFT_DROP_THRESHOLD = 30;
 const HARD_DROP_VELOCITY = 800;
+const MOVE_THRESHOLD = 20;
+const LEVEL_UP_INTERVAL = 10000;
 
 // Tetromino shapes (0-indexed rotations)
 const TETROMINOES: { [key: string]: { shape: number[][][]; color: string } } = {
@@ -115,7 +117,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const levelRef = useRef(1);
   const linesRef = useRef(0);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const _lastMoveTimeRef = useRef(0);
+  const gameStartTimeRef = useRef(Date.now());
 
   const getRandomPiece = useCallback((): string => {
     return PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
@@ -188,13 +190,6 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
       setScore(scoreRef.current);
       setLines(linesRef.current);
       onScoreChange?.(scoreRef.current);
-      
-      // Level up every 10 lines
-      const newLevel = Math.floor(linesRef.current / 10) + 1;
-      if (newLevel > levelRef.current) {
-        levelRef.current = newLevel;
-        setLevel(newLevel);
-      }
     }
     
     boardRef.current = newBoard;
@@ -260,6 +255,22 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     }
   }, [gameState, spawnPiece]);
 
+  // Level-up timer (every 10 seconds)
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const levelTimer = setInterval(() => {
+      const elapsedTime = Date.now() - gameStartTimeRef.current;
+      const newLevel = Math.floor(elapsedTime / LEVEL_UP_INTERVAL) + 1;
+      if (newLevel > levelRef.current) {
+        levelRef.current = newLevel;
+        setLevel(newLevel);
+      }
+    }, 1000);
+
+    return () => clearInterval(levelTimer);
+  }, [gameState]);
+
   // Game loop
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -293,7 +304,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     const dx = e.nativeEvent.pageX - touchStartRef.current.x;
     const dy = e.nativeEvent.pageY - touchStartRef.current.y;
     
-    if (Math.abs(dx) > 40) {
+    if (Math.abs(dx) > MOVE_THRESHOLD) {
       movePiece(dx > 0 ? 1 : -1, 0);
       touchStartRef.current.x = e.nativeEvent.pageX;
     }
@@ -337,6 +348,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     scoreRef.current = 0;
     levelRef.current = 1;
     linesRef.current = 0;
+    gameStartTimeRef.current = Date.now();
     currentPieceRef.current = null;
     setCurrentPiece(null);
     setNextPiece(getRandomPiece());
@@ -385,9 +397,8 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const boardOffsetX = (width - BOARD_WIDTH) / 2;
 
   return (
-    <SafeAreaView 
+    <View 
       style={styles.container} 
-      edges={['top', 'bottom']}
       testID="blockdrop-container"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -465,7 +476,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
