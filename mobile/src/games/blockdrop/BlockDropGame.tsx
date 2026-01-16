@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
@@ -384,8 +385,9 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const boardOffsetX = (width - BOARD_WIDTH) / 2;
 
   return (
-    <View 
+    <SafeAreaView 
       style={styles.container} 
+      edges={['top', 'bottom']}
       testID="blockdrop-container"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -455,7 +457,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

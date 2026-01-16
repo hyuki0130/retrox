@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, RoundedRect, Rect, Circle, BlurMask } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
@@ -206,8 +207,9 @@ export const PongGame: React.FC<PongGameProps> = ({
   const isPlayerWinner = aiLives <= 0;
 
   return (
-    <View 
+    <SafeAreaView 
       style={styles.container} 
+      edges={['top', 'bottom']}
       testID="pong-container"
       {...panResponder.panHandlers}
     >
@@ -316,7 +318,7 @@ export const PongGame: React.FC<PongGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

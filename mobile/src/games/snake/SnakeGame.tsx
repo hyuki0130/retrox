@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
 
 const { width } = Dimensions.get('window');
@@ -209,8 +210,9 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   const offsetX = (width - BOARD_SIZE) / 2;
 
   return (
-    <View 
+    <SafeAreaView 
       style={styles.container} 
+      edges={['top', 'bottom']}
       testID="snake-container"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -294,7 +296,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
