@@ -40,12 +40,16 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const [timeLeft, setTimeLeft] = useState(60);
   const [containerHeight, setContainerHeight] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [comboCount, setComboCount] = useState(0);
+  const [showCombo, setShowCombo] = useState(false);
 
   const touchStart = useRef<{ row: number; col: number; x: number; y: number } | null>(null);
   const selectedRef = useRef<{ row: number; col: number } | null>(null);
   const swapRef = useRef<(r1: number, c1: number, r2: number, c2: number) => void>(() => {});
   const animationRef = useRef<number | null>(null);
-  const processMatchesRef = useRef<(matches: { row: number; col: number }[]) => void>(() => {});
+  const processMatchesRef = useRef<(matches: { row: number; col: number }[], chainCount?: number) => void>(() => {});
+  const comboTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chainCountRef = useRef(1);
 
   const handleContainerLayout = (event: LayoutChangeEvent) => {
     setContainerHeight(event.nativeEvent.layout.height);
@@ -80,7 +84,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     return matches;
   }, []);
 
-  const animateDrops = useCallback(() => {
+  const animateDrops = useCallback((chainCount: number = 1) => {
     setGrid(currentGrid => {
       const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell })));
       let stillAnimating = false;
@@ -100,7 +104,9 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
           const colorGrid = getColorGrid(newGrid);
           const matches = checkMatches(colorGrid);
           if (matches.length > 0) {
-            processMatchesRef.current(matches);
+            processMatchesRef.current(matches, chainCount + 1);
+          } else {
+            setComboCount(0);
           }
         }, 50);
       }
@@ -112,7 +118,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   useEffect(() => {
     if (isAnimating) {
       const animate = () => {
-        animateDrops();
+        animateDrops(chainCountRef.current);
         animationRef.current = requestAnimationFrame(animate);
       };
       animationRef.current = requestAnimationFrame(animate);
@@ -122,8 +128,18 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     }
   }, [isAnimating, animateDrops]);
 
-  const processMatchesWithAnimation = useCallback((matches: { row: number; col: number }[]) => {
-    const points = matches.length * 10;
+  const processMatchesWithAnimation = useCallback((matches: { row: number; col: number }[], chainCount: number = 1) => {
+    chainCountRef.current = chainCount;
+    const comboMultiplier = Math.min(chainCount, 5);
+    const points = matches.length * 10 * comboMultiplier;
+    
+    if (chainCount > 1) {
+      setComboCount(chainCount);
+      setShowCombo(true);
+      if (comboTimeoutRef.current) clearTimeout(comboTimeoutRef.current);
+      comboTimeoutRef.current = setTimeout(() => setShowCombo(false), 800);
+    }
+    
     setScore(s => {
       const newScore = s + points;
       onScoreChange?.(newScore);
@@ -276,12 +292,16 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
 
   const restart = () => {
     if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (comboTimeoutRef.current) clearTimeout(comboTimeoutRef.current);
     setIsAnimating(false);
     setGrid(createGrid());
     setScore(0);
     setTimeLeft(60);
     setSelected(null);
     selectedRef.current = null;
+    setComboCount(0);
+    setShowCombo(false);
+    chainCountRef.current = 1;
   };
 
   return (
@@ -290,6 +310,11 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         <Text style={[styles.time, timeLeft < 10 && styles.timeWarning]}>TIME: {timeLeft}</Text>
         <Text testID="puzzle-score" style={styles.hiddenText}>{score}</Text>
         <Text testID="puzzle-time" style={styles.hiddenText}>{timeLeft}</Text>
+        {showCombo && comboCount > 1 && (
+          <View style={styles.comboContainer}>
+            <Text style={styles.comboText}>{comboCount}x COMBO!</Text>
+          </View>
+        )}
       </View>
 
       <View 
@@ -353,6 +378,21 @@ const styles = StyleSheet.create({
   time: { color: '#ffff00', fontSize: 24, fontWeight: 'bold', fontFamily: 'monospace' },
   timeWarning: { color: '#ff0000' },
   hiddenText: { position: 'absolute', opacity: 0, height: 1, width: 1 },
+  comboContainer: {
+    position: 'absolute',
+    top: 40,
+    alignSelf: 'center',
+    backgroundColor: '#ff0066',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  comboText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
   
   gameBoard: { 
     alignSelf: 'center',

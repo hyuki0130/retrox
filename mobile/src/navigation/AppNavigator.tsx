@@ -6,6 +6,7 @@ import type { RootStackParamList } from './types';
 import { MainTabNavigator } from './MainTabNavigator';
 import { GameplayScreen } from '@/screens/GameplayScreen';
 import { ResultsScreen } from '@/screens/ResultsScreen';
+import { CoinChargeScreen } from '@/screens/CoinChargeScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -39,6 +40,13 @@ export const AppNavigator: React.FC = () => {
             options={{
               animation: 'slide_from_bottom',
               gestureEnabled: false,
+            }}
+          />
+          <RootStack.Screen
+            name="CoinCharge"
+            component={CoinChargeScreen}
+            options={{
+              animation: 'slide_from_right',
             }}
           />
         </RootStack.Navigator>
