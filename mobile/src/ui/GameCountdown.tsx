@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 interface GameCountdownProps {
@@ -12,25 +12,26 @@ export const GameCountdown: React.FC<GameCountdownProps> = ({
 }) => {
   const [count, setCount] = useState(startFrom);
   const [showGo, setShowGo] = useState(false);
+  const onCompleteRef = useRef(onComplete);
 
-  const handleComplete = useCallback(() => {
-    onComplete();
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
   }, [onComplete]);
 
   useEffect(() => {
     if (count > 0) {
       const timer = setTimeout(() => {
-        setCount(count - 1);
+        setCount(c => c - 1);
       }, 1000);
       return () => clearTimeout(timer);
     } else if (count === 0 && !showGo) {
       setShowGo(true);
       const timer = setTimeout(() => {
-        handleComplete();
+        onCompleteRef.current();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [count, showGo, handleComplete]);
+  }, [count, showGo]);
 
   return (
     <View style={styles.overlay} testID="game-countdown">

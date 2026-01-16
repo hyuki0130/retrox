@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
 import { Canvas, Group, Path, BlurMask, RoundedRect } from '@shopify/react-native-skia';
+import { GameCountdown } from '@/ui';
 
 const { width } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
@@ -32,7 +33,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
-  const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [playerX, setPlayerX] = useState(width / 2);
   const [bullets, setBullets] = useState<Entity[]>([]);
@@ -167,8 +168,11 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     return () => clearInterval(gameLoop);
   }, [gameState, onGameOver, onScoreChange]);
 
-  const restart = () => {
+  const handleCountdownComplete = useCallback(() => {
     setGameState('playing');
+  }, []);
+
+  const restart = () => {
     setScore(0);
     scoreRef.current = 0;
     setBullets([]);
@@ -181,6 +185,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     lastEnemySpawn.current = 0;
     gameTimeRef.current = 0;
     difficultyRef.current = 1;
+    setGameState('countdown');
   };
 
   return (
@@ -229,6 +234,10 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
         ))}
         </Canvas>
       </View>
+
+      {gameState === 'countdown' && (
+        <GameCountdown onComplete={handleCountdownComplete} />
+      )}
 
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="shooter-gameover">
