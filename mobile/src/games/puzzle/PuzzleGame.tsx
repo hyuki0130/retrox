@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent, Animated } from 'react-native';
 
 import { Canvas, RoundedRect, Image, SkImage } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { usePuzzleSprites } from '@/core';
+import { usePuzzleSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics } from '@/core';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 6;
@@ -46,6 +46,9 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     sprites.gemOrange,
     sprites.gemPurple,
   ];
+  const { particles, burst, clear: clearParticles } = useParticles();
+  const { flashColor, flashOpacity, shakeX, shake, flash } = useScreenEffects();
+  const haptics = useHaptics();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [grid, setGrid] = useState<CellState[][]>(createGrid);
   const [score, setScore] = useState(0);
@@ -150,8 +153,13 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     if (chainCount > 1) {
       setComboCount(chainCount);
       setShowCombo(true);
+      shake(chainCount * 3, 150);
+      flash('#ffffff', 80);
+      haptics.medium();
       if (comboTimeoutRef.current) clearTimeout(comboTimeoutRef.current);
       comboTimeoutRef.current = setTimeout(() => setShowCombo(false), 800);
+    } else {
+      haptics.light();
     }
     
     setScore(s => s + points);
@@ -160,6 +168,12 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell })));
       
       matches.forEach(({ row, col }) => {
+        const cellColor = newGrid[row][col].color;
+        if (cellColor !== -1) {
+          const x = col * CELL_SIZE + CELL_SIZE / 2;
+          const y = row * CELL_SIZE + CELL_SIZE / 2;
+          burst(x, y, 6, [COLORS[cellColor], '#ffffff']);
+        }
         newGrid[row][col] = { color: -1, yOffset: 0 };
       });
 
@@ -327,11 +341,12 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     setShowCombo(false);
     chainCountRef.current = 1;
     isFirstScoreUpdate.current = true;
+    clearParticles();
     setGameState('countdown');
   };
 
   return (
-    <View style={styles.container} testID="puzzle-container" onLayout={handleContainerLayout}>
+    <Animated.View style={[styles.container, { transform: [{ translateX: shakeX }] }]} testID="puzzle-container" onLayout={handleContainerLayout}>
       <View style={[styles.timeContainer, { marginTop: verticalPadding }]}>
         <Text style={[styles.time, timeLeft < 10 && styles.timeWarning]}>TIME: {timeLeft}</Text>
         <Text testID="puzzle-score" style={styles.hiddenText}>{score}</Text>
@@ -395,6 +410,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
               );
             })
           )}
+          <ParticleSystem particles={particles} />
         </Canvas>
 
         <View style={styles.gridOverlay} testID="puzzle-grid" pointerEvents="none">
@@ -410,6 +426,10 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         </View>
       </View>
 
+      {flashColor && (
+        <View style={[styles.flashOverlay, { backgroundColor: flashColor, opacity: flashOpacity }]} pointerEvents="none" />
+      )}
+
       {gameState === 'countdown' && (
         <GameCountdown onComplete={handleCountdownComplete} />
       )}
@@ -423,12 +443,13 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
+  flashOverlay: { ...StyleSheet.absoluteFillObject },
   timeContainer: { 
     alignItems: 'center', 
     marginBottom: 16,

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent, Animated } from 'react-native';
 
 import { Canvas, Rect, RoundedRect, BlurMask, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { useSnakeSprites } from '@/core';
+import { useSnakeSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 20;
@@ -30,6 +30,10 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   onScoreChange,
 }) => {
   const sprites = useSnakeSprites();
+  const { particles, burst, clear: clearParticles } = useParticles();
+  const { flashColor, flashOpacity, shakeX, damageEffect, successEffect } = useScreenEffects();
+  const haptics = useHaptics();
+  const { popups, show: showScorePopup, clear: clearPopups } = useScorePopup();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
@@ -105,6 +109,8 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
         const newLives = livesRef.current - 1;
         livesRef.current = newLives;
         setLives(newLives);
+        damageEffect();
+        haptics.error();
         
         if (newLives <= 0) {
           setGameState('gameover');
@@ -132,12 +138,18 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
 
       currentSnake.unshift(head);
 
-      // Food collision
       if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
         const newScore = scoreRef.current + 100;
         scoreRef.current = newScore;
         setScore(newScore);
         onScoreChange?.(newScore);
+        
+        const foodPixelX = foodRef.current.x * CELL_SIZE + CELL_SIZE / 2 + 16;
+        const foodPixelY = foodRef.current.y * CELL_SIZE + CELL_SIZE / 2;
+        burst(foodPixelX, foodPixelY, 8, ['#ff0066', '#ffff00', '#00ff9d']);
+        showScorePopup(foodPixelX, foodPixelY - 20, 100, '#00ff9d');
+        successEffect();
+        haptics.light();
         
         const newFood = spawnFood(currentSnake, scoreRef.current);
         foodRef.current = newFood;
@@ -207,12 +219,14 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
     setDirection('RIGHT');
     directionRef.current = 'RIGHT';
     nextDirectionRef.current = 'RIGHT';
+    clearParticles();
+    clearPopups();
     setGameState('countdown');
   };
 
   return (
-    <View 
-      style={styles.container} 
+    <Animated.View 
+      style={[styles.container, { transform: [{ translateX: shakeX }] }]} 
       testID="snake-container"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -258,7 +272,6 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
             />
           )}
 
-          {/* Snake */}
           {snake.map((segment, index) => {
             const isHead = index === 0;
             const isTail = index === snake.length - 1 && snake.length > 1;
@@ -286,6 +299,9 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
               />
             );
           })}
+
+          <ParticleSystem particles={particles} />
+          <ScorePopup popups={popups} />
         </Canvas>
       </View>
 
@@ -295,6 +311,10 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
 
       {gameState === 'countdown' && (
         <GameCountdown onComplete={handleCountdownComplete} />
+      )}
+
+      {flashColor && (
+        <View style={[styles.flashOverlay, { backgroundColor: flashColor, opacity: flashOpacity }]} pointerEvents="none" />
       )}
 
       {gameState === 'gameover' && (
@@ -307,7 +327,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -391,5 +411,8 @@ const styles = StyleSheet.create({
     fontSize: 18, 
     fontWeight: 'bold',
     fontFamily: 'monospace',
+  },
+  flashOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 });

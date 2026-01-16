@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent, Animated } from 'react-native';
 import { Canvas, Group, Path, BlurMask, RoundedRect, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { useShooterSprites } from '@/core';
+import { useShooterSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
 
 const { width } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
@@ -35,6 +35,10 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   onScoreChange,
 }) => {
   const sprites = useShooterSprites();
+  const { particles, burst, clear: clearParticles } = useParticles();
+  const { flashColor, flashOpacity, shakeX, damageEffect } = useScreenEffects();
+  const haptics = useHaptics();
+  const { popups, show: showScorePopup, clear: clearPopups } = useScorePopup();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [playerX, setPlayerX] = useState(width / 2);
@@ -139,9 +143,13 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < (BULLET_SIZE + ENEMY_SIZE) / 2) {
+            const destroyedEnemy = newEnemies[j];
             newBullets.splice(i, 1);
             newEnemies.splice(j, 1);
             scoreIncrease += 100;
+            burst(destroyedEnemy.x, destroyedEnemy.y, 8, ['#ff0066', '#ff3388', '#ff6699']);
+            showScorePopup(destroyedEnemy.x, destroyedEnemy.y, 100);
+            haptics.light();
             break;
           }
         }
@@ -168,6 +176,8 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       }
 
       if (playerHit) {
+        damageEffect();
+        haptics.error();
         setGameState('gameover');
         onGameOver?.(scoreRef.current);
       }
@@ -193,12 +203,14 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
     lastEnemySpawn.current = 0;
     gameTimeRef.current = 0;
     difficultyRef.current = 1;
+    clearParticles();
+    clearPopups();
     setGameState('countdown');
   };
 
   return (
-    <View 
-      style={styles.container} 
+    <Animated.View 
+      style={[styles.container, { transform: [{ translateX: shakeX }] }]} 
       testID="shooter-container"
       {...panResponder.panHandlers}
     >
@@ -259,11 +271,18 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
               </Group>
             );
           })}
+          
+          <ParticleSystem particles={particles} />
+          <ScorePopup popups={popups} />
         </Canvas>
       </View>
 
       {gameState === 'countdown' && (
         <GameCountdown onComplete={handleCountdownComplete} />
+      )}
+
+      {flashColor && (
+        <View style={[styles.flashOverlay, { backgroundColor: flashColor, opacity: flashOpacity }]} pointerEvents="none" />
       )}
 
       {gameState === 'gameover' && (
@@ -275,7 +294,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -283,6 +302,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   canvasContainer: { flex: 1 },
   canvas: { flex: 1 },
+  flashOverlay: { ...StyleSheet.absoluteFillObject },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
   gameOverText: { color: '#ff0066', fontSize: 36, fontWeight: 'bold', fontFamily: 'monospace' },
   finalScore: { color: '#fff', fontSize: 24, marginTop: 20 },

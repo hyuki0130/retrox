@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent, Animated } from 'react-native';
 
 import { Canvas, Rect, RoundedRect, BlurMask, Image, SkImage } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { useBlockDropSprites } from '@/core';
+import { useBlockDropSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLS = 10;
@@ -110,6 +110,10 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     '#0000ff': sprites.blockBlue,
     '#ff8800': sprites.blockOrange,
   };
+  const { particles, burst, clear: clearParticles } = useParticles();
+  const { flashColor, flashOpacity, shakeX, shake, flash } = useScreenEffects();
+  const haptics = useHaptics();
+  const { popups, show: showScorePopup, showText, clear: clearPopups } = useScorePopup();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
@@ -198,14 +202,15 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
       }
     }
     
-    // Clear lines
     let clearedLines = 0;
+    const clearedRows: number[] = [];
     for (let y = ROWS - 1; y >= 0; y--) {
       if (newBoard[y].every(cell => cell !== null)) {
+        clearedRows.push(y);
         newBoard.splice(y, 1);
         newBoard.unshift(Array(COLS).fill(null));
         clearedLines++;
-        y++; // Check same row again
+        y++;
       }
     }
     
@@ -216,6 +221,25 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
       setScore(scoreRef.current);
       setLines(linesRef.current);
       onScoreChange?.(scoreRef.current);
+      
+      clearedRows.forEach((row) => {
+        for (let x = 0; x < COLS; x++) {
+          const pixelX = x * cellSize + cellSize / 2;
+          const pixelY = row * cellSize + cellSize / 2;
+          burst(pixelX, pixelY, 3, ['#00ff9d', '#ffffff']);
+        }
+      });
+      
+      if (clearedLines === 4) {
+        showText(SCREEN_WIDTH / 2, BOARD_HEIGHT / 2, 'TETRIS!', '#ffff00');
+        flash('#ffff00');
+        shake(8);
+        haptics.heavy();
+      } else {
+        showScorePopup(SCREEN_WIDTH / 2, BOARD_HEIGHT / 2, lineScore, '#00ff9d');
+        shake(clearedLines * 2);
+        haptics.medium();
+      }
     }
     
     boardRef.current = newBoard;
@@ -269,10 +293,13 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     scoreRef.current += dropDistance * 2;
     setScore(scoreRef.current);
     
+    shake(3);
+    haptics.light();
+    
     mergePiece(currentPieceRef.current);
     currentPieceRef.current = null;
     spawnPiece();
-  }, [movePiece, mergePiece, spawnPiece]);
+  }, [movePiece, mergePiece, spawnPiece, shake, haptics]);
 
   // Initial spawn
   useEffect(() => {
@@ -383,6 +410,8 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     currentPieceRef.current = null;
     setCurrentPiece(null);
     setNextPiece(getRandomPiece());
+    clearParticles();
+    clearPopups();
     setGameState('countdown');
   };
 
@@ -431,8 +460,8 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   }
 
   return (
-    <View 
-      style={styles.container} 
+    <Animated.View 
+      style={[styles.container, { transform: [{ translateX: shakeX }] }]} 
       testID="blockdrop-container"
       onLayout={handleLayout}
       onTouchStart={handleTouchStart}
@@ -495,6 +524,9 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
             )}
 
             {currentPiece && renderPiece(currentPiece, 0, 0)}
+
+            <ParticleSystem particles={particles} />
+            <ScorePopup popups={popups} />
           </Canvas>
         </View>
       </View>
@@ -515,6 +547,10 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
         <GameCountdown onComplete={handleCountdownComplete} />
       )}
 
+      {flashColor && (
+        <View style={[styles.flashOverlay, { backgroundColor: flashColor, opacity: flashOpacity }]} pointerEvents="none" />
+      )}
+
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="blockdrop-gameover">
           <Text style={styles.gameOverText}>GAME OVER</Text>
@@ -525,7 +561,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -629,5 +665,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: 'monospace',
+  },
+  flashOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 });
