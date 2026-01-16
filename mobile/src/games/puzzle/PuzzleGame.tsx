@@ -53,6 +53,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const processMatchesRef = useRef<(matches: { row: number; col: number }[], chainCount?: number) => void>(() => {});
   const comboTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chainCountRef = useRef(1);
+  const isFirstScoreUpdate = useRef(true);
 
   const handleContainerLayout = (event: LayoutChangeEvent) => {
     setContainerHeight(event.nativeEvent.layout.height);
@@ -143,11 +144,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       comboTimeoutRef.current = setTimeout(() => setShowCombo(false), 800);
     }
     
-    setScore(s => {
-      const newScore = s + points;
-      onScoreChange?.(newScore);
-      return newScore;
-    });
+    setScore(s => s + points);
 
     setGrid(currentGrid => {
       const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell })));
@@ -188,9 +185,17 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       setIsAnimating(true);
       return newGrid;
     });
-  }, [onScoreChange]);
+  }, []);
 
   processMatchesRef.current = processMatchesWithAnimation;
+
+  useEffect(() => {
+    if (isFirstScoreUpdate.current) {
+      isFirstScoreUpdate.current = false;
+      return;
+    }
+    onScoreChange?.(score);
+  }, [score, onScoreChange]);
 
   const swap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     if (isAnimating) return;
@@ -311,6 +316,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     setComboCount(0);
     setShowCombo(false);
     chainCountRef.current = 1;
+    isFirstScoreUpdate.current = true;
     setGameState('countdown');
   };
 
