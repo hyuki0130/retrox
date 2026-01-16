@@ -27,7 +27,6 @@ export const PongGame: React.FC<PongGameProps> = ({
   const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
   const [playerScore, setPlayerScore] = useState(0);
   const [playerLives, setPlayerLives] = useState(MAX_LIVES);
-  const [aiLives, setAiLives] = useState(MAX_LIVES);
   const [playerX, setPlayerX] = useState(width / 2 - PADDLE_WIDTH / 2);
   const [aiX, setAiX] = useState(width / 2 - PADDLE_WIDTH / 2);
   const [ballPos, setBallPos] = useState({ x: width / 2, y: 300 });
@@ -40,7 +39,6 @@ export const PongGame: React.FC<PongGameProps> = ({
   const ballRef = useRef({ x: width / 2, y: 300, vx: BALL_SPEED_INITIAL, vy: BALL_SPEED_INITIAL });
   const playerScoreRef = useRef(0);
   const playerLivesRef = useRef(MAX_LIVES);
-  const aiLivesRef = useRef(MAX_LIVES);
   const canvasHeightRef = useRef(600);
   const gameStartTimeRef = useRef(Date.now());
   const speedMultiplierRef = useRef(1);
@@ -145,23 +143,13 @@ export const PongGame: React.FC<PongGameProps> = ({
       setAiX(aiXRef.current);
 
       if (ball.y < 0) {
-        const newLives = aiLivesRef.current - 1;
-        aiLivesRef.current = newLives;
-        setAiLives(newLives);
-        
         const currentLevel = Math.floor(elapsedTime / SPEED_INCREASE_INTERVAL) + 1;
         const missScore = 100 * currentLevel;
         const newScore = playerScoreRef.current + missScore;
         playerScoreRef.current = newScore;
         setPlayerScore(newScore);
         onScoreChange?.(newScore);
-        
-        if (newLives <= 0) {
-          setGameState('gameover');
-          onGameOver?.(newScore);
-        } else {
-          resetBall(1);
-        }
+        resetBall(1);
       } else if (ball.y > height) {
         const newLives = playerLivesRef.current - 1;
         playerLivesRef.current = newLives;
@@ -189,12 +177,10 @@ export const PongGame: React.FC<PongGameProps> = ({
     setGameState('playing');
     setPlayerScore(0);
     setPlayerLives(MAX_LIVES);
-    setAiLives(MAX_LIVES);
     setLevel(1);
     setSpeedMultiplier(1);
     playerScoreRef.current = 0;
     playerLivesRef.current = MAX_LIVES;
-    aiLivesRef.current = MAX_LIVES;
     speedMultiplierRef.current = 1;
     gameStartTimeRef.current = Date.now();
     setPlayerX(width / 2 - PADDLE_WIDTH / 2);
@@ -203,8 +189,6 @@ export const PongGame: React.FC<PongGameProps> = ({
     aiXRef.current = width / 2 - PADDLE_WIDTH / 2;
     resetBall(1);
   };
-
-  const isPlayerWinner = aiLives <= 0;
 
   return (
     <SafeAreaView 
@@ -215,8 +199,8 @@ export const PongGame: React.FC<PongGameProps> = ({
     >
       <View style={styles.scoreBar}>
         <View style={styles.scoreSection}>
-          <Text style={styles.scoreLabel}>AI</Text>
-          <Text style={[styles.livesValue, { color: '#ff0066' }]} testID="pong-ai-lives">{'❤️'.repeat(aiLives)}</Text>
+          <Text style={styles.scoreLabel}>LIVES</Text>
+          <Text style={[styles.livesValue, { color: '#00ff9d' }]} testID="pong-player-lives">{'❤️'.repeat(playerLives)}</Text>
         </View>
         <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>LEVEL</Text>
@@ -225,10 +209,6 @@ export const PongGame: React.FC<PongGameProps> = ({
         <View style={styles.scoreSection}>
           <Text style={styles.scoreLabel}>SCORE</Text>
           <Text style={[styles.scoreValue, { color: '#fff' }]} testID="pong-player-score">{playerScore}</Text>
-        </View>
-        <View style={styles.scoreSection}>
-          <Text style={styles.scoreLabel}>YOU</Text>
-          <Text style={[styles.livesValue, { color: '#00ff9d' }]} testID="pong-player-lives">{'❤️'.repeat(playerLives)}</Text>
         </View>
       </View>
 
@@ -307,8 +287,8 @@ export const PongGame: React.FC<PongGameProps> = ({
 
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="pong-gameover">
-          <Text style={[styles.gameOverText, { color: isPlayerWinner ? '#00ff9d' : '#ff0066' }]}>
-            {isPlayerWinner ? 'YOU WIN!' : 'GAME OVER'}
+          <Text style={[styles.gameOverText, { color: '#ff0066' }]}>
+            GAME OVER
           </Text>
           <Text style={styles.finalScore} testID="pong-final-score">
             Score: {playerScore}
