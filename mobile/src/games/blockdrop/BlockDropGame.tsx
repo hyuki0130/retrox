@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 
 import { Canvas, Rect, RoundedRect, BlurMask } from '@shopify/react-native-skia';
+import { GameCountdown } from '@/ui';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLS = 10;
@@ -12,7 +13,6 @@ const SOFT_DROP_THRESHOLD = 30;
 const HARD_DROP_VELOCITY = 800;
 const MOVE_THRESHOLD = 20;
 const LEVEL_UP_INTERVAL = 10000;
-const DOUBLE_TAP_DELAY = 300;
 
 // Tetromino shapes (0-indexed rotations)
 const TETROMINOES: { [key: string]: { shape: number[][][]; color: string } } = {
@@ -99,7 +99,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   onGameOver,
   onScoreChange,
 }) => {
-  const [gameState, setGameState] = useState<'playing' | 'gameover'>('playing');
+  const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [lines, setLines] = useState(0);
@@ -117,7 +117,6 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const linesRef = useRef(0);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const gameStartTimeRef = useRef(Date.now());
-  const lastTapTimeRef = useRef(0);
 
   const HEADER_HEIGHT = 60;
   const CONTROLS_HEIGHT = 80;
@@ -341,25 +340,24 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     const dt = Date.now() - touchStartRef.current.time;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
-    const now = Date.now();
 
-    if (absDx < 20 && absDy < 20 && dt < 200) {
-      if (now - lastTapTimeRef.current < DOUBLE_TAP_DELAY) {
-        hardDrop();
-        lastTapTimeRef.current = 0;
-      } else {
-        rotatePiece();
-        lastTapTimeRef.current = now;
-      }
-    } else if (absDy > absDx && dy > 50) {
-      const velocity = dy / Math.max(dt, 1) * 1000;
-      if (velocity > HARD_DROP_VELOCITY) {
-        hardDrop();
-      }
+    const isTap = absDx < 20 && absDy < 20 && dt < 200;
+    const isSwipeDown = absDy > absDx && dy > 50;
+    const swipeVelocity = dy / Math.max(dt, 1) * 1000;
+
+    if (isTap) {
+      rotatePiece();
+    } else if (isSwipeDown && swipeVelocity > HARD_DROP_VELOCITY) {
+      hardDrop();
     }
 
     touchStartRef.current = null;
   };
+
+  const handleCountdownComplete = useCallback(() => {
+    gameStartTimeRef.current = Date.now();
+    setGameState('playing');
+  }, []);
 
   const restart = () => {
     const emptyBoard = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
@@ -371,11 +369,10 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     scoreRef.current = 0;
     levelRef.current = 1;
     linesRef.current = 0;
-    gameStartTimeRef.current = Date.now();
     currentPieceRef.current = null;
     setCurrentPiece(null);
     setNextPiece(getRandomPiece());
-    setGameState('playing');
+    setGameState('countdown');
   };
 
   const renderPiece = (piece: Piece, offsetX: number, offsetY: number) => {
@@ -487,8 +484,12 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
         >
           <Text style={styles.hardDropText}>⬇ HARD DROP</Text>
         </TouchableOpacity>
-        <Text style={styles.controlHint}>Tap: Rotate | Double-Tap: Drop | Swipe: Move</Text>
+        <Text style={styles.controlHint}>Tap: Rotate | Swipe: Move | Button: Drop</Text>
       </View>
+
+      {gameState === 'countdown' && (
+        <GameCountdown onComplete={handleCountdownComplete} />
+      )}
 
       {gameState === 'gameover' && (
         <View style={styles.overlay} testID="blockdrop-gameover">
