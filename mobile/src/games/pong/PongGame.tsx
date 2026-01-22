@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, Lay
 
 import { Canvas, RoundedRect, Rect, Circle, BlurMask, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { usePongSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
+import { usePongSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup, usePongAudio } from '@/core';
 
 const { width } = Dimensions.get('window');
 const PADDLE_WIDTH = 80;
@@ -31,6 +31,7 @@ export const PongGame: React.FC<PongGameProps> = ({
   const { flashColor, flashOpacity, shakeX, shake, flash, damageEffect, successEffect } = useScreenEffects();
   const haptics = useHaptics();
   const { popups, show: showScorePopup, clear: clearPopups } = useScorePopup();
+  const audio = usePongAudio();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [playerScore, setPlayerScore] = useState(0);
   const [playerLives, setPlayerLives] = useState(MAX_LIVES);
@@ -116,6 +117,7 @@ export const PongGame: React.FC<PongGameProps> = ({
       if (ball.x <= BALL_SIZE / 2 || ball.x >= width - BALL_SIZE / 2) {
         ball.vx *= -1;
         ball.x = Math.max(BALL_SIZE / 2, Math.min(width - BALL_SIZE / 2, ball.x));
+        audio.play('pong_wall_hit');
       }
 
       const playerPaddleY = height - PADDLE_MARGIN - PADDLE_HEIGHT;
@@ -141,6 +143,7 @@ export const PongGame: React.FC<PongGameProps> = ({
         emit(ball.x, playerPaddleY, 5, '#00ff9d', { speed: 3, life: 20, gravity: 0 });
         showScorePopup(ball.x, playerPaddleY - 20, hitScore, '#00ff9d');
         haptics.light();
+        audio.play('pong_paddle_hit');
       }
 
       const aiPaddleY = PADDLE_MARGIN;
@@ -176,6 +179,7 @@ export const PongGame: React.FC<PongGameProps> = ({
         successEffect();
         showScorePopup(ball.x, 50, missScore, '#ffff00');
         haptics.success();
+        audio.play('pong_score');
         resetBall(1);
       } else if (ball.y > height) {
         const newLives = playerLivesRef.current - 1;
@@ -183,9 +187,11 @@ export const PongGame: React.FC<PongGameProps> = ({
         setPlayerLives(newLives);
         damageEffect();
         haptics.error();
+        audio.play('pong_miss');
         
         if (newLives <= 0) {
           setGameState('gameover');
+          audio.play('game_over');
           onGameOver?.(playerScoreRef.current);
         } else {
           resetBall(-1);

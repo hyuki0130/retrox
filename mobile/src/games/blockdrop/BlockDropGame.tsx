@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderE
 
 import { Canvas, Rect, RoundedRect, BlurMask, Image, SkImage } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { useBlockDropSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
+import { useBlockDropSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup, useBlockDropAudio } from '@/core';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLS = 10;
@@ -114,6 +114,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
   const { flashColor, flashOpacity, shakeX, shake, flash } = useScreenEffects();
   const haptics = useHaptics();
   const { popups, show: showScorePopup, showText, clear: clearPopups } = useScorePopup();
+  const audio = useBlockDropAudio();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
@@ -164,6 +165,7 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     
     if (!isValidPosition(piece, boardRef.current)) {
       setGameState('gameover');
+      audio.play('game_over');
       onGameOver?.(scoreRef.current);
       return null;
     }
@@ -235,10 +237,12 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
         flash('#ffff00');
         shake(8);
         haptics.heavy();
+        audio.play('blockdrop_tetris');
       } else {
         showScorePopup(SCREEN_WIDTH / 2, BOARD_HEIGHT / 2, lineScore, '#00ff9d');
         shake(clearedLines * 2);
         haptics.medium();
+        audio.play('blockdrop_line_clear');
       }
     }
     
@@ -273,14 +277,17 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     if (isValidPosition(newPiece, boardRef.current)) {
       currentPieceRef.current = newPiece;
       setCurrentPiece(newPiece);
+      audio.play('blockdrop_rotate');
     } else if (isValidPosition({ ...newPiece, x: newPiece.x - 1 }, boardRef.current)) {
       currentPieceRef.current = { ...newPiece, x: newPiece.x - 1 };
       setCurrentPiece(currentPieceRef.current);
+      audio.play('blockdrop_rotate');
     } else if (isValidPosition({ ...newPiece, x: newPiece.x + 1 }, boardRef.current)) {
       currentPieceRef.current = { ...newPiece, x: newPiece.x + 1 };
       setCurrentPiece(currentPieceRef.current);
+      audio.play('blockdrop_rotate');
     }
-  }, []);
+  }, [audio]);
 
   const hardDrop = useCallback(() => {
     if (!currentPieceRef.current) return;
@@ -294,11 +301,12 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     setScore(scoreRef.current);
     
     shake(3);
+    audio.play('blockdrop_drop');
     
     mergePiece(currentPieceRef.current);
     currentPieceRef.current = null;
     spawnPiece();
-  }, [movePiece, mergePiece, spawnPiece, shake]);
+  }, [movePiece, mergePiece, spawnPiece, shake, audio]);
 
   // Initial spawn
   useEffect(() => {
@@ -357,7 +365,10 @@ export const BlockDropGame: React.FC<BlockDropGameProps> = ({
     const dy = e.nativeEvent.pageY - touchStartRef.current.y;
     
     if (Math.abs(dx) > MOVE_THRESHOLD) {
-      movePiece(dx > 0 ? 1 : -1, 0);
+      const moved = movePiece(dx > 0 ? 1 : -1, 0);
+      if (moved) {
+        audio.play('blockdrop_move', { debounceMs: 80 });
+      }
       touchStartRef.current.x = e.nativeEvent.pageX;
     }
     

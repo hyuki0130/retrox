@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent, Animated } from 'react-native';
 
-import { Canvas, RoundedRect, Image, SkImage } from '@shopify/react-native-skia';
+import { Canvas, RoundedRect, Image, SkImage, Group, rect, rrect } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { usePuzzleSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics } from '@/core';
+import { usePuzzleSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, usePuzzleAudio } from '@/core';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 6;
@@ -31,7 +31,7 @@ const createGrid = (): CellState[][] => {
     );
 };
 
-const DROP_SPEED = 15;
+const DROP_SPEED = 30;
 
 export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   onGameOver,
@@ -49,6 +49,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const { particles, burst, clear: clearParticles } = useParticles();
   const { flashColor, flashOpacity, shakeX, shake, flash } = useScreenEffects();
   const haptics = useHaptics();
+  const audio = usePuzzleAudio();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [grid, setGrid] = useState<CellState[][]>(createGrid);
   const [score, setScore] = useState(0);
@@ -67,6 +68,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const comboTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chainCountRef = useRef(1);
   const isFirstScoreUpdate = useRef(true);
+  const shouldAnimateRef = useRef(false);
 
   const handleContainerLayout = (event: LayoutChangeEvent) => {
     setContainerHeight(event.nativeEvent.layout.height);
@@ -102,6 +104,8 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   }, []);
 
   const animateDrops = useCallback((chainCount: number = 1) => {
+    if (!shouldAnimateRef.current) return;
+
     setGrid(currentGrid => {
       const newGrid = currentGrid.map(row => row.map(cell => ({ ...cell })));
       let stillAnimating = false;
@@ -116,6 +120,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       }
 
       if (!stillAnimating) {
+        shouldAnimateRef.current = false;
         setIsAnimating(false);
         setTimeout(() => {
           const colorGrid = getColorGrid(newGrid);
@@ -133,14 +138,18 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   }, [checkMatches, getColorGrid]);
 
   useEffect(() => {
-    if (isAnimating) {
+    if (isAnimating && shouldAnimateRef.current) {
       const animate = () => {
+        if (!shouldAnimateRef.current) return;
         animateDrops(chainCountRef.current);
         animationRef.current = requestAnimationFrame(animate);
       };
       animationRef.current = requestAnimationFrame(animate);
       return () => {
-        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          animationRef.current = null;
+        }
       };
     }
   }, [isAnimating, animateDrops]);
@@ -156,10 +165,12 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
       shake(chainCount * 3, 150);
       flash('#ffffff', 80);
       haptics.medium();
+      audio.play('puzzle_combo');
       if (comboTimeoutRef.current) clearTimeout(comboTimeoutRef.current);
       comboTimeoutRef.current = setTimeout(() => setShowCombo(false), 800);
     } else {
       haptics.light();
+      audio.play('puzzle_match');
     }
     
     setScore(s => s + points);
@@ -206,6 +217,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         }
       }
 
+      shouldAnimateRef.current = true;
       setIsAnimating(true);
       return newGrid;
     });
@@ -223,6 +235,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
 
   const swap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     if (isAnimating) return;
+    audio.play('puzzle_swap');
     
     setGrid(g => {
       const newGrid = g.map(row => row.map(cell => ({ ...cell })));
@@ -319,6 +332,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
     if (gameState !== 'playing') return;
     if (timeLeft <= 0) {
       setGameState('gameover');
+      audio.play('game_over');
       onGameOver?.(score);
       return;
     }
@@ -331,6 +345,7 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
   const restart = () => {
     if (animationRef.current) cancelAnimationFrame(animationRef.current);
     if (comboTimeoutRef.current) clearTimeout(comboTimeoutRef.current);
+    shouldAnimateRef.current = false;
     setIsAnimating(false);
     setGrid(createGrid());
     setScore(0);
@@ -363,54 +378,59 @@ export const PuzzleGame: React.FC<PuzzleGameProps> = ({
         {...panResponder.panHandlers}
       >
         <Canvas style={styles.canvas} testID="puzzle-canvas">
-          {grid.map((row, rowIdx) =>
-            row.map((cell, colIdx) => {
-              if (cell.color === -1) return null;
-              const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
-              const tileSprite = tileSprites[cell.color];
-              const x = colIdx * CELL_SIZE + 2;
-              const y = rowIdx * CELL_SIZE + 2 + cell.yOffset;
-              const size = CELL_SIZE - 4;
-              
-              return tileSprite ? (
-                <React.Fragment key={`${rowIdx}-${colIdx}`}>
-                  <Image
-                    image={tileSprite}
-                    x={x}
-                    y={y}
-                    width={size}
-                    height={size}
-                    fit="contain"
-                  />
-                  {isSelected && (
-                    <RoundedRect
+          <Group clip={rrect(rect(0, 0, CELL_SIZE * GRID_SIZE, CELL_SIZE * GRID_SIZE), 8, 8)}>
+            {grid.map((row, rowIdx) =>
+              row.map((cell, colIdx) => {
+                if (cell.color === -1) return null;
+                const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
+                const tileSprite = tileSprites[cell.color];
+                const x = colIdx * CELL_SIZE + 2;
+                const y = rowIdx * CELL_SIZE + 2 + cell.yOffset;
+                const size = CELL_SIZE - 4;
+
+                // Skip rendering tiles that are less than half visible (above the grid)
+                if (y < -size / 2) return null;
+
+                return tileSprite ? (
+                  <React.Fragment key={`${rowIdx}-${colIdx}`}>
+                    <Image
+                      image={tileSprite}
                       x={x}
                       y={y}
                       width={size}
                       height={size}
-                      r={8}
-                      color="#fff"
-                      style="stroke"
-                      strokeWidth={3}
+                      fit="fill"
                     />
-                  )}
-                </React.Fragment>
-              ) : (
-                <RoundedRect
-                  key={`${rowIdx}-${colIdx}`}
-                  x={x}
-                  y={y}
-                  width={size}
-                  height={size}
-                  r={8}
-                  color={COLORS[cell.color]}
-                  style={isSelected ? 'stroke' : 'fill'}
-                  strokeWidth={isSelected ? 4 : 0}
-                />
-              );
-            })
-          )}
-          <ParticleSystem particles={particles} />
+                    {isSelected && (
+                      <RoundedRect
+                        x={x}
+                        y={y}
+                        width={size}
+                        height={size}
+                        r={8}
+                        color="#fff"
+                        style="stroke"
+                        strokeWidth={3}
+                      />
+                    )}
+                  </React.Fragment>
+                ) : (
+                  <RoundedRect
+                    key={`${rowIdx}-${colIdx}`}
+                    x={x}
+                    y={y}
+                    width={size}
+                    height={size}
+                    r={8}
+                    color={COLORS[cell.color]}
+                    style={isSelected ? 'stroke' : 'fill'}
+                    strokeWidth={isSelected ? 4 : 0}
+                  />
+                );
+              })
+            )}
+            <ParticleSystem particles={particles} />
+          </Group>
         </Canvas>
 
         <View style={styles.gridOverlay} testID="puzzle-grid" pointerEvents="none">
@@ -481,7 +501,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#1a1a1a',
   },
-  canvas: { flex: 1 },
+  canvas: { width: CELL_SIZE * GRID_SIZE, height: CELL_SIZE * GRID_SIZE },
   gridOverlay: { 
     ...StyleSheet.absoluteFillObject, 
     flexDirection: 'row', 

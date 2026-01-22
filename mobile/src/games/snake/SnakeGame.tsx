@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions, Text, TouchableOpacity, GestureResponderE
 
 import { Canvas, Rect, RoundedRect, BlurMask, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { useSnakeSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
+import { useSnakeSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup, useSnakeAudio } from '@/core';
 
 const { width } = Dimensions.get('window');
 const GRID_SIZE = 20;
@@ -34,6 +34,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
   const { flashColor, flashOpacity, shakeX, damageEffect, successEffect } = useScreenEffects();
   const haptics = useHaptics();
   const { popups, show: showScorePopup, clear: clearPopups } = useScorePopup();
+  const audio = useSnakeAudio();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
@@ -111,9 +112,11 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
         setLives(newLives);
         damageEffect();
         haptics.error();
+        audio.play('snake_collision');
         
         if (newLives <= 0) {
           setGameState('gameover');
+          audio.play('game_over');
           onGameOver?.(scoreRef.current);
         } else {
           const respawnSnake = [{ x: 10, y: 10 }];
@@ -150,6 +153,7 @@ export const SnakeGame: React.FC<SnakeGameProps> = ({
         showScorePopup(foodPixelX, foodPixelY - 20, 100, '#00ff9d');
         successEffect();
         haptics.light();
+        audio.play('snake_eat');
         
         const newFood = spawnFood(currentSnake, scoreRef.current);
         foodRef.current = newFood;

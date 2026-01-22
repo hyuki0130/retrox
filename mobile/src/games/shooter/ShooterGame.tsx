@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, PanResponder, LayoutChangeEvent, Animated } from 'react-native';
 import { Canvas, Group, Path, BlurMask, RoundedRect, Image } from '@shopify/react-native-skia';
 import { GameCountdown } from '@/ui';
-import { useShooterSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup } from '@/core';
+import { useShooterSprites, useParticles, ParticleSystem, useScreenEffects, useHaptics, useScorePopup, ScorePopup, useShooterAudio } from '@/core';
 
 const { width } = Dimensions.get('window');
 const PLAYER_SIZE = 40;
@@ -42,6 +42,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
   const { flashColor, flashOpacity, shakeX, damageEffect } = useScreenEffects();
   const haptics = useHaptics();
   const { popups, show: showScorePopup, clear: clearPopups } = useScorePopup();
+  const audio = useShooterAudio();
   const [gameState, setGameState] = useState<'countdown' | 'playing' | 'gameover'>('countdown');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(MAX_LIVES);
@@ -164,6 +165,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
             burst(destroyedEnemy.x, destroyedEnemy.y, 8, ['#ff0066', '#ff3388', '#ff6699']);
             showScorePopup(destroyedEnemy.x, destroyedEnemy.y, points);
             haptics.light();
+            audio.play(enemySpeed >= FAST_ENEMY_SPEED ? 'shooter_enemy_fast_hit' : 'shooter_enemy_hit');
             break;
           }
         }
@@ -192,6 +194,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
       if (playerHit) {
         damageEffect();
         haptics.error();
+        audio.play('shooter_player_hit');
         const newLives = livesRef.current - 1;
         livesRef.current = newLives;
         setLives(newLives);
@@ -206,6 +209,7 @@ export const ShooterGame: React.FC<ShooterGameProps> = ({
         
         if (newLives <= 0) {
           setGameState('gameover');
+          audio.play('game_over');
           onGameOver?.(scoreRef.current);
         }
       }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useAudio } from '@/core';
 
 interface GameCountdownProps {
   onComplete: () => void;
@@ -13,10 +14,19 @@ export const GameCountdown: React.FC<GameCountdownProps> = ({
   const [count, setCount] = useState(startFrom);
   const [showGo, setShowGo] = useState(false);
   const onCompleteRef = useRef(onComplete);
+  const audio = useAudio();
+  const hasPlayedVoice = useRef(false);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  useEffect(() => {
+    if (!hasPlayedVoice.current) {
+      hasPlayedVoice.current = true;
+      audio.play('countdown_voice');
+    }
+  }, [audio]);
 
   useEffect(() => {
     if (count > 0) {

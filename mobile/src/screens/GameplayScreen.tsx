@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '@/navigation/types';
 import { useSettingsStore, useCoinStore } from '@/store';
+import { audioService } from '@/services';
 import { ShooterGame } from '@/games/shooter';
 import { PuzzleGame } from '@/games/puzzle';
 import { SnakeGame } from '@/games/snake';
@@ -33,7 +34,8 @@ export const GameplayScreen: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
 
   const handleGameOver = useCallback((finalScore: number) => {
-    const baseReward = GAME_REWARDS[gameId] || 50;
+    audioService.stopBGM();
+    
     const bonusCoins = Math.floor(finalScore / 1000) * 10;
     addCoins(bonusCoins);
     
@@ -57,6 +59,7 @@ export const GameplayScreen: React.FC = () => {
   };
 
   const handleQuit = () => {
+    audioService.stopBGM();
     navigation.goBack();
   };
 

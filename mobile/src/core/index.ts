@@ -19,3 +19,13 @@ export type { HapticsAPI } from './useHaptics';
 
 export { ScorePopup, useScorePopup } from './ScorePopup';
 export type { ScorePopupItem } from './ScorePopup';
+
+export {
+  useAudio,
+  useGameAudio,
+  useShooterAudio,
+  usePuzzleAudio,
+  usePongAudio,
+  useSnakeAudio,
+  useBlockDropAudio,
+} from './useAudio';
